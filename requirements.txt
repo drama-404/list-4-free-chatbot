@@ -1,0 +1,9 @@
+Flask  # For building the API/microservice
+flask-cors  # For handling cross-origin requests
+flask-sqlalchemy  # For database integration
+psycopg2-binary  # For PostgreSQL database
+
+
+
+
+
