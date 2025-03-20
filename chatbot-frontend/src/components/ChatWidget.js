@@ -1,6 +1,6 @@
 import React, { useState, useReducer, useEffect, useRef } from 'react';
 import TypingIndicator from './TypingIndicator';
-import { CONVERSATION_STATES, PROPERTY_TYPES, TIMELINE_OPTIONS, initialState } from '../utils/conversationState';
+import { CONVERSATION_STATES, PROPERTY_TYPES, TIMELINE_OPTIONS, initialState, extractBedroomNumbers } from '../utils/conversationState';
 import MinimizedChat from './MinimizedChat';
 import '../styles/ChatWidget.css';
 
@@ -37,6 +37,7 @@ const ChatWidget = () => {
     //     options: ["Yes, please!", "No, thanks."]
     //   });
 
+
     const simulateTyping = async () => {
         setIsTyping(true);
         // Simulate typing delay between 1-2 seconds
@@ -66,23 +67,48 @@ const ChatWidget = () => {
         switch (state.currentState) {
             case CONVERSATION_STATES.INITIAL:
                 if (input === "Yes, please!") {
-                    dispatch({ type: 'UPDATE_STATE', payload: CONVERSATION_STATES.LOCATION_INPUT });
-                    return {
-                        sender: 'bot',
-                        text: "Great! Let's start with the location. Where are you looking to buy?",
-                        // We'll add location input handling later
-                    };
-                } else if (input === "No, thanks.") {
+                    dispatch({ type: 'UPDATE_STATE', payload: CONVERSATION_STATES.CONFIRM_FILTERS });
+                    // Check if there are existing filters
+                    if (state.filters.existingFilters) {
+                        return {
+                            sender: 'bot',
+                            text: `Just to confirm, you're looking for a ${state.filters.propertyType} in ${state.filters.location} under ${state.filters.price}? Do you want to refine these details?`,
+                            options: ["Confirm", "Edit"]
+                        };
+                    } else {
+                        return {
+                            sender: 'bot',
+                            text: "Please enter your preferred location.",
+                            options: null
+                        };
+                    }
+                } else {
                     dispatch({ type: 'UPDATE_STATE', payload: CONVERSATION_STATES.COMPLETED });
                     return {
                         sender: 'bot',
                         text: "Thank you for your time. Feel free to come back if you change your mind!"
                     };
                 }
+
+            case CONVERSATION_STATES.CONFIRM_FILTERS:
+                if (input === "Confirm") {
+                    dispatch({ type: 'UPDATE_STATE', payload: CONVERSATION_STATES.PUBLIC_TRANSPORT });
+                    return {
+                        sender: 'bot',
+                        text: "Do you need public transport close to your property?",
+                        options: ["Yes", "No"]
+                    };
+                } else if (input === "Edit" || !state.filters.existingFilters) {
+                    dispatch({ type: 'UPDATE_STATE', payload: CONVERSATION_STATES.EDIT_LOCATION });
+                    return {
+                        sender: 'bot',
+                        text: "Please enter your preferred location:",
+                        options: null
+                    };
+                }
                 break;
 
-            case CONVERSATION_STATES.LOCATION_INPUT:
-                // Store location input
+            case CONVERSATION_STATES.EDIT_LOCATION:
                 dispatch({ 
                     type: 'UPDATE_FILTERS', 
                     payload: { location: input } 
@@ -97,22 +123,18 @@ const ChatWidget = () => {
                 };
 
             case CONVERSATION_STATES.PROPERTY_TYPE:
-                let selectedType = input;
                 dispatch({ 
                     type: 'UPDATE_FILTERS', 
-                    payload: { propertyType: selectedType } 
+                    payload: { propertyType: input } 
                 });
-
-                // If residential is selected, ask for bedrooms
-                if (selectedType === PROPERTY_TYPES.RESIDENTIAL.label) {
-                    dispatch({ type: 'UPDATE_STATE', payload: CONVERSATION_STATES.BEDROOMS });
+                
+                if (input === "Residential") {
                     return {
                         sender: 'bot',
-                        text: "How many bedrooms are you looking for?",
-                        options: ["Studio", "1", "2", "3", "4+", "No preference"]
+                        text: "How many bedrooms are you looking for? (You can specify a range, e.g., '2-3 bedrooms' or 'min 2 max 4')",
+                        options: null
                     };
                 } else {
-                    // Skip to public transport for other property types
                     dispatch({ type: 'UPDATE_STATE', payload: CONVERSATION_STATES.PUBLIC_TRANSPORT });
                     return {
                         sender: 'bot',
@@ -122,9 +144,10 @@ const ChatWidget = () => {
                 }
 
             case CONVERSATION_STATES.BEDROOMS:
+                const { min, max } = extractBedroomNumbers(input);
                 dispatch({ 
                     type: 'UPDATE_FILTERS', 
-                    payload: { bedrooms: { min: input === "4+" ? 4 : parseInt(input) || 0 } } 
+                    payload: { bedrooms: { min, max } } 
                 });
                 dispatch({ type: 'UPDATE_STATE', payload: CONVERSATION_STATES.PUBLIC_TRANSPORT });
                 return {
@@ -154,7 +177,7 @@ const ChatWidget = () => {
                 return {
                     sender: 'bot',
                     text: "When do you ideally plan to complete the purchase?",
-                    options: TIMELINE_OPTIONS
+                    options: ["ASAP", "1-3 months", "3-6 months", "Not sure yet"]
                 };
 
             case CONVERSATION_STATES.TIMELINE:
@@ -174,22 +197,17 @@ const ChatWidget = () => {
                     dispatch({ type: 'UPDATE_STATE', payload: CONVERSATION_STATES.EMAIL_REQUEST });
                     return {
                         sender: 'bot',
-                        text: "Where should we send the information on all properties matching your preferences?\n\nPlease leave with us your email address and we'll come back to you within 2 hours."
+                        text: "Please note that you may be requested to show a Pre-Approved Loan Agreement before the viewing of a property.\n\nWhere should we send the information on all properties matching your preferences?\n\nPlease leave with us your email address and we'll come back to you within 2 hours."
                     };
                 }
 
             case CONVERSATION_STATES.FINANCIAL_READINESS:
-                dispatch({ 
-                    type: 'UPDATE_PREFERENCES', 
-                    payload: { hasPreApprovedLoan: input === "Yes" } 
-                });
-                
                 if (input === "Yes") {
                     dispatch({ type: 'UPDATE_STATE', payload: CONVERSATION_STATES.COMPLETED });
                     return {
                         sender: 'bot',
                         text: "Please note that you may be requested to show a Pre-Approved Loan Agreement before the viewing of a property.\n\nPlease register an account and we shall provide all the available properties that match your requirements.",
-                        options: ["Register"]  // You'll need to handle this action separately
+                        options: ["Register"]
                     };
                 } else {
                     dispatch({ type: 'UPDATE_STATE', payload: CONVERSATION_STATES.EMAIL_REQUEST });
@@ -200,7 +218,6 @@ const ChatWidget = () => {
                 }
 
             case CONVERSATION_STATES.EMAIL_REQUEST:
-                // Basic email validation
                 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
                 if (emailRegex.test(input)) {
                     dispatch({ type: 'SET_EMAIL', payload: input });

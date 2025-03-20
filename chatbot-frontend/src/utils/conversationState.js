@@ -1,7 +1,7 @@
 export const CONVERSATION_STATES = {
     INITIAL: 'INITIAL',
-    CONFIRM_SEARCH: 'CONFIRM_SEARCH',
-    LOCATION_INPUT: 'LOCATION_INPUT',
+    CONFIRM_FILTERS: 'CONFIRM_FILTERS',
+    EDIT_LOCATION: 'EDIT_LOCATION',
     PROPERTY_TYPE: 'PROPERTY_TYPE',
     BEDROOMS: 'BEDROOMS',
     PUBLIC_TRANSPORT: 'PUBLIC_TRANSPORT',
@@ -45,7 +45,8 @@ export const CONVERSATION_STATES = {
         min: null,
         max: null
       },
-      price: null
+      price: null,
+      existingFilters: false
     },
     preferences: {
       publicTransport: null,
@@ -54,4 +55,30 @@ export const CONVERSATION_STATES = {
       hasPreApprovedLoan: null
     },
     userEmail: null
+  };
+
+  export const extractBedroomNumbers = (input) => {
+    const text = input.toLowerCase();
+    let min = null;
+    let max = null;
+
+    // Handle specific patterns
+    if (text.includes('studio')) return { min: 0, max: 0 };
+    
+    // Extract numbers from text
+    const numbers = text.match(/\d+/g);
+    if (numbers) {
+      if (text.includes('min') && text.includes('max')) {
+        min = parseInt(numbers[0]);
+        max = parseInt(numbers[1]);
+      } else if (text.includes('-') || text.includes('to')) {
+        min = parseInt(numbers[0]);
+        max = parseInt(numbers[1]);
+      } else {
+        min = parseInt(numbers[0]);
+        max = min;
+      }
+    }
+
+    return { min, max };
   };
