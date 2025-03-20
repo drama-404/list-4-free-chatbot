@@ -1,0 +1,160 @@
+.popup-overlay {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 1000;
+  }
+  
+  .ios-popup {
+    background: rgba(250, 250, 250, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 14px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    width: 300px;
+    overflow: hidden;
+    animation: slideUp 0.3s ease-out;
+  }
+  
+  .popup-content {
+    padding: 16px;
+  }
+  
+  .popup-content p {
+    margin: 0 0 16px;
+    font-size: 14px;
+    color: #000;
+    text-align: center;
+    line-height: 1.4;
+  }
+  
+  /* .popup-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    border-top: 1px solid #e1e1e1;
+    margin: 0 -16px -16px;
+  }
+  
+  .popup-button {
+    padding: 12px;
+    border: none;
+    background: none;
+    font-size: 16px;
+    font-weight: 500;
+    width: 100%;
+    cursor: pointer;
+    transition: background-color 0.2s;
+  }
+  
+  .popup-button:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+  }
+  
+  .popup-button.primary {
+    color: #007AFF;
+    border-top: 1px solid #e1e1e1;
+  }
+  
+  .popup-button.secondary {
+    color: #FF3B30;
+  } */
+  
+  @keyframes slideUp {
+    from {
+      transform: translateY(100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+
+
+  .popup-overlay {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 1000;
+  }
+  
+  .ios-popup {
+    background: rgba(250, 250, 250, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 14px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    width: 300px;
+    overflow: hidden;
+    animation: slideUp 0.3s ease-out;
+  }
+  
+  .popup-content {
+    padding: 16px;
+  }
+  
+  .popup-message-container {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  
+  .popup-message-container p {
+    margin: 0;
+    font-size: 14px;
+    color: #000;
+    line-height: 1.4;
+    flex: 1;
+  }
+  
+  
+  @keyframes slideUp {
+    from {
+      transform: translateY(100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  } */
+
+/* ... existing styles ... */
+
+.popup-buttons {
+    display: flex;
+    flex-direction: row; /* Ensure it's row */
+    justify-content: space-between; /* Add space between buttons */
+    align-items: center;
+    gap: 16px; /* Add some space between buttons */
+    border-top: 1px solid #e1e1e1;
+    margin: 0 -16px -16px;
+    padding: 8px 16px;
+  }
+  
+  .popup-button {
+    padding: 12px;
+    border: none;
+    background: none;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: #007AFF;
+    flex: 1; /* Make buttons take equal width */
+    text-align: center; /* Center the text */
+    text-decoration: none;
+    white-space: nowrap; /* Prevent text from wrapping */
+  }
+  
+  .popup-button:hover {
+    text-decoration: underline;
+  }
+  
+  .popup-button.primary {
+    font-weight: bold;
+    order: -1; /* Keep Yes, please first */
+  }
+  
+  .popup-button.secondary {
+    font-weight: normal;
+  }
