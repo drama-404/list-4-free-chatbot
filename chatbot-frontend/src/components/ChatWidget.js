@@ -29,6 +29,7 @@ const ChatWidget = ({ initialResponse }) => {
     const chatLogRef = useRef(null);
     const inputRef = useRef(null);
     const [inputError, setInputError] = useState('');
+    const [lastActiveMessageId, setLastActiveMessageId] = useState(null);
 
   const API_URL = process.env.REACT_APP_API_URL;
   const CHAT_API_URL = process.env.REACT_APP_CHAT_API_URL;
@@ -40,11 +41,14 @@ const ChatWidget = ({ initialResponse }) => {
     //   });
 
 
-    const simulateTyping = async () => {
+    const simulateTyping = () => {
         setIsTyping(true);
-        // Simulate typing delay between 1-2 seconds
-        await new Promise(resolve => setTimeout(resolve, Math.random() * 1000 + 1000));
-        setIsTyping(false);
+        return new Promise(resolve => {
+            setTimeout(() => {
+                setIsTyping(false);
+                resolve();
+            }, 1000);
+        });
     };
 
     const validateInput = (input, type) => {
@@ -137,20 +141,20 @@ const ChatWidget = ({ initialResponse }) => {
                 });
                 
                 if (input === "Residential") {
+                    const questionId = Date.now();
+                    const hintId = questionId + 1;
+                    setLastActiveMessageId(questionId);
+                    
                     setMessages(prev => [...prev, {
                         sender: 'bot',
-                        text: "How many bedrooms are you looking for?"
+                        text: "How many bedrooms are you looking for?",
+                        options: null,
+                        id: questionId
                     }, {
                         sender: 'bot',
-                        text: "You can specify your bedroom requirements in any of these formats:",
+                        text: "You can specify:\n• A single number (e.g., '3')\n• A range (e.g., '2-4' or '2 to 4')\n• Min/max (e.g., 'min 2' or 'max 4')\n• 'No min' or 'No max' for open-ended ranges\n• 'Studio' for 0 bedrooms",
                         isHint: true,
-                        hintItems: [
-                            "- A single number (e.g., '3')",
-                            "- A range (e.g., '2-4' or '2 to 4')",
-                            "- Min/max (e.g., 'min 2' or 'max 4')",
-                            "- 'No min' or 'No max' for open-ended ranges",
-                            "- 'Studio' for 0 bedrooms"
-                        ]
+                        id: hintId
                     }]);
                     dispatch({ type: 'UPDATE_STATE', payload: CONVERSATION_STATES.BEDROOMS });
                     return null;
@@ -185,13 +189,19 @@ const ChatWidget = ({ initialResponse }) => {
                     payload: { bedrooms: { min, max } } 
                 });
 
+                const confirmMessageId = Date.now();
+                const optionsMessageId = confirmMessageId + 1;
+                setLastActiveMessageId(optionsMessageId);
+
                 setMessages(prev => [...prev, {
                     sender: 'bot',
-                    text: `Got it! Looking for ${bedroomConfirmation}.`
+                    text: `Got it! Looking for ${bedroomConfirmation}.`,
+                    id: confirmMessageId
                 }, {
                     sender: 'bot',
                     text: "Do you need public transport close to your property?",
-                    options: ["Yes", "No"]
+                    options: ["Yes", "No"],
+                    id: optionsMessageId
                 }]);
 
                 dispatch({ type: 'UPDATE_STATE', payload: CONVERSATION_STATES.PUBLIC_TRANSPORT });
@@ -239,10 +249,12 @@ const ChatWidget = ({ initialResponse }) => {
                     setMessages(prev => [...prev, {
                         sender: 'bot',
                         text: "Please note that you may be requested to show a Pre-Approved Loan Agreement before the viewing of a property.",
-                        isHint: true
+                        isHint: true,
+                        id: Date.now()
                     }, {
                         sender: 'bot',
-                        text: "Please leave with us your email address and we'll come back to you within 2 hours."
+                        text: "Please leave with us your email address and we'll come back to you within 2 hours.",
+                        id: Date.now() + 1
                     }]);
                     return null;
                 }
@@ -250,14 +262,20 @@ const ChatWidget = ({ initialResponse }) => {
             case CONVERSATION_STATES.FINANCIAL_READINESS:
                 if (input === "Yes") {
                     dispatch({ type: 'UPDATE_STATE', payload: CONVERSATION_STATES.COMPLETED });
+                    const hintId = Date.now();
+                    const finalMessageId = hintId + 1;
+                    setLastActiveMessageId(finalMessageId);
+
                     setMessages(prev => [...prev, {
                         sender: 'bot',
                         text: "Please note that you may be requested to show a Pre-Approved Loan Agreement before the viewing of a property.",
-                        isHint: true
+                        isHint: true,
+                        id: hintId
                     }, {
                         sender: 'bot',
                         text: "Please register an account and we shall provide all the available properties that match your requirements.",
-                        options: ["Register"]
+                        options: ["Register"],
+                        id: finalMessageId
                     }]);
                     return null;
                 } else {
@@ -265,10 +283,12 @@ const ChatWidget = ({ initialResponse }) => {
                     setMessages(prev => [...prev, {
                         sender: 'bot',
                         text: "Please note that you may be requested to show a Pre-Approved Loan Agreement before the viewing of a property.",
-                        isHint: true
+                        isHint: true,
+                        id: Date.now()
                     }, {
                         sender: 'bot',
-                        text: "Please leave with us your email address and we'll come back to you within 2 hours."
+                        text: "Where should we send the information on all properties matching your preferences?\n\nPlease leave with us your email address and we'll come back to you within 2 hours.",
+                        id: Date.now() + 1
                     }]);
                     return null;
                 }
@@ -294,25 +314,35 @@ const ChatWidget = ({ initialResponse }) => {
         }
     };
 
-    const sendMessage = async (input) => {
+    const sendMessage = async (message) => {
+        setLastActiveMessageId(null);
+        
+        // Add user message
+        const userMessageId = Date.now();
+        setMessages(prev => [...prev, {
+            sender: 'user',
+            text: message,
+            id: userMessageId
+        }]);
+
         setIsLoading(true);
-        setMessages(prev => [...prev, { sender: 'user', text: input }]);
 
         try {
             await simulateTyping();
-            const botResponse = handleUserResponse(input);
+            const botResponse = handleUserResponse(message);
 
             if (botResponse) {
-                setMessages(prev => [...prev, botResponse]);
-            } else {
-                // API fallback logic here
+                const newMessageId = Date.now() + 1;
+                if (botResponse.options) {
+                    setLastActiveMessageId(newMessageId);
+                }
+                setMessages(prev => [...prev, {
+                    ...botResponse,
+                    id: newMessageId
+                }]);
             }
         } catch (error) {
             console.error('Error:', error);
-            setMessages(prev => [...prev, {
-                sender: 'bot',
-                text: 'Sorry, there was an error processing your request.'
-            }]);
         } finally {
             setIsLoading(false);
         }
@@ -320,10 +350,13 @@ const ChatWidget = ({ initialResponse }) => {
 
     // Initialize chat when component mounts
     useEffect(() => {
+        const initialMessageId = Date.now();
+        setLastActiveMessageId(initialMessageId);
         setMessages([{
             sender: 'bot',
             text: "Looks like there aren't any properties matching your search. Would you like us to conduct a deeper search on the web?",
-            options: ["Yes, please!", "No, thanks."]
+            options: ["Yes, please!", "No, thanks."],
+            id: initialMessageId
         }]);
     }, []);
 
@@ -371,19 +404,18 @@ const ChatWidget = ({ initialResponse }) => {
     };
 
     const renderMessageContent = (msg) => {
-  return (
+        return (
             <div className={`message-content ${msg.isHint ? 'hint-container' : ''}`}>
-                {msg.text && <p className={msg.isHint ? 'hint-text' : ''}>{msg.text}</p>}
-                {msg.hintItems && (
-                    <ul className="hint-list">
-                        {msg.hintItems.map((item, index) => (
-                            <li key={index}>{item}</li>
+                {msg.text && (
+                    <div className={msg.isHint ? 'hint-text' : ''}>
+                        {msg.text.split('\n').map((line, i) => (
+                            <p key={i}>{line}</p>
                         ))}
-                    </ul>
+                    </div>
                 )}
-            {msg.options && (
-              <div className="options">
-                {msg.options.map((option, i) => (
+                {msg.options && msg.id === lastActiveMessageId && (
+                    <div className="options">
+                        {msg.options.map((option, i) => (
                             <button
                                 key={i}
                                 onClick={() => sendMessage(option)}
@@ -392,9 +424,9 @@ const ChatWidget = ({ initialResponse }) => {
                             >
                                 {option}
                             </button>
-                ))}
-              </div>
-            )}
+                        ))}
+                    </div>
+                )}
             </div>
         );
     };
@@ -430,17 +462,19 @@ const ChatWidget = ({ initialResponse }) => {
             </div>
 
             <div className="chat-log" ref={chatLogRef}>
-                {messages.map((msg, idx) => (
-                    <div key={idx} className={`message ${msg.sender}`}>
-                        {renderMessageContent(msg)}
-          </div>
-        ))}
+                {messages.map((message, index) => (
+                    <div key={message.id || index} className={`message ${message.sender}`}>
+                        <div className="message-content">
+                            {renderMessageContent(message)}
+                        </div>
+                    </div>
+                ))}
                 {isTyping && (
                     <div className="message bot">
                         <TypingIndicator />
                     </div>
                 )}
-      </div>
+            </div>
 
             <form onSubmit={(e) => {
                 e.preventDefault();

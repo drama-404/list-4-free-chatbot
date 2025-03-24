@@ -362,15 +362,26 @@ button[type="submit"]:disabled {
 .hint-container {
     font-size: 12px;
     color: #666;
+    /* margin: 8px 0; */
 }
 
 .hint-text {
     color: #666;
-    font-size: 12px !important;
+    font-size: 12px;
     font-style: italic;
+    background: rgba(233, 233, 235, 0.5);
+    border-left: 2px solid #007AFF;
+    padding: 8px 12px;
     margin: 4px 0;
-    text-align: left;
-}
+    border-radius: 4px;
+  }
+
+  .hint-text p {
+    margin: 4px 0;
+    padding: 0;
+    font-size: inherit;
+    color: inherit;
+  }
 
 .hint-list {
     list-style: none;
