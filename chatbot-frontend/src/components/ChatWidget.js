@@ -1,6 +1,7 @@
 import React, { useState, useReducer, useEffect, useRef } from 'react';
 import TypingIndicator from './TypingIndicator';
 import { CONVERSATION_STATES, PROPERTY_TYPES, TIMELINE_OPTIONS, initialState, extractBedroomNumbers } from '../utils/conversationState';
+import { initiateChat, completeChat } from '../utils/api';
 import MinimizedChat from './MinimizedChat';
 import '../styles/ChatWidget.css';
 
@@ -19,17 +20,18 @@ const conversationReducer = (state, action) => {
     }
 };
 
-const ChatWidget = ({ initialResponse }) => {
+const ChatWidget = ({ initialResponse, searchCriteria, list4freeUserId }) => {
   const [messages, setMessages] = useState([]);
   const [userInput, setUserInput] = useState('');
-    const [state, dispatch] = useReducer(conversationReducer, initialState);
-    const [isLoading, setIsLoading] = useState(false);
-    const [isTyping, setIsTyping] = useState(false);
-    const [isMinimized, setIsMinimized] = useState(false);
-    const chatLogRef = useRef(null);
-    const inputRef = useRef(null);
-    const [inputError, setInputError] = useState('');
-    const [lastActiveMessageId, setLastActiveMessageId] = useState(null);
+  const [state, dispatch] = useReducer(conversationReducer, initialState);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
+  const [isMinimized, setIsMinimized] = useState(false);
+  const [sessionId, setSessionId] = useState(null);
+  const chatLogRef = useRef(null);
+  const inputRef = useRef(null);
+  const [inputError, setInputError] = useState('');
+  const [lastActiveMessageId, setLastActiveMessageId] = useState(null);
 
   const API_URL = process.env.REACT_APP_API_URL;
   const CHAT_API_URL = process.env.REACT_APP_CHAT_API_URL;
@@ -69,7 +71,7 @@ const ChatWidget = ({ initialResponse }) => {
         }
     };
 
-    const handleUserResponse = (input) => {
+    const handleUserResponse = async (input) => {
         switch (state.currentState) {
             case CONVERSATION_STATES.INITIAL:
                 if (input === "Yes, please!") {
@@ -309,6 +311,34 @@ const ChatWidget = ({ initialResponse }) => {
                     };
                 }
 
+            case CONVERSATION_STATES.COMPLETED:
+                try {
+                    // Prepare the final preferences
+                    const finalPreferences = {
+                        ...state.filters,
+                        ...state.preferences
+                    };
+
+                    // Call the backend to complete the chat
+                    await completeChat(
+                        sessionId,
+                        finalPreferences,
+                        state.userEmail,
+                        { messages } // conversation summary
+                    );
+
+                    return {
+                        sender: 'bot',
+                        text: "Thank you for using our service! We'll be in touch soon with your personalized property recommendations."
+                    };
+                } catch (error) {
+                    console.error('Error completing chat:', error);
+                    return {
+                        sender: 'bot',
+                        text: "Thank you for using our service! We'll process your preferences and get back to you soon."
+                    };
+                }
+
             default:
                 return null;
         }
@@ -329,7 +359,7 @@ const ChatWidget = ({ initialResponse }) => {
 
         try {
             await simulateTyping();
-            const botResponse = handleUserResponse(message);
+            const botResponse = await handleUserResponse(message);
 
             if (botResponse) {
                 const newMessageId = Date.now() + 1;
@@ -350,15 +380,40 @@ const ChatWidget = ({ initialResponse }) => {
 
     // Initialize chat when component mounts
     useEffect(() => {
-        const initialMessageId = Date.now();
-        setLastActiveMessageId(initialMessageId);
-        setMessages([{
-            sender: 'bot',
-            text: "Looks like there aren't any properties matching your search. Would you like us to conduct a deeper search on the web?",
-            options: ["Yes, please!", "No, thanks."],
-            id: initialMessageId
-        }]);
-    }, []);
+        const initializeChat = async () => {
+            try {
+                setIsLoading(true);
+                // Call the backend to initiate chat
+                const response = await initiateChat(searchCriteria, list4freeUserId);
+                setSessionId(response.session_id);
+
+                // Update the conversation state with the search criteria
+                dispatch({ 
+                    type: 'UPDATE_FILTERS', 
+                    payload: {
+                        ...searchCriteria,
+                        existingFilters: true
+                    }
+                });
+
+                // Add the initial popup message
+                setMessages([{
+                    sender: 'bot',
+                    text: response.initial_popup,
+                    options: ["Yes, please!", "No, thanks."],
+                    id: Date.now()
+                }]);
+
+            } catch (error) {
+                console.error('Error initializing chat:', error);
+                // Handle error appropriately
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        initializeChat();
+    }, [searchCriteria, list4freeUserId]); // Only run when search criteria or user ID changes
 
     // Handle initial response from popup
     useEffect(() => {

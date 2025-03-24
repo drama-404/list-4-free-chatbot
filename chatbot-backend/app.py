@@ -23,8 +23,14 @@ def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
     
-    # Initialize CORS
-    CORS(app, origins=Config.CORS_ORIGINS)
+    # Initialize CORS with more permissive settings for development
+    CORS(app, resources={
+        r"/api/*": {
+            "origins": ["http://localhost:3000"],
+            "methods": ["GET", "POST", "OPTIONS"],
+            "allow_headers": ["Content-Type", "Accept"]
+        }
+    })
     
     # Register blueprints
     app.register_blueprint(chat_bp, url_prefix=f"{Config.API_PREFIX}/chat")

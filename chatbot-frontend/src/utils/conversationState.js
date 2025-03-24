@@ -38,7 +38,7 @@ export const CONVERSATION_STATES = {
   export const initialState = {
     currentState: CONVERSATION_STATES.INITIAL,
     filters: {
-      location: null,
+      location: null, 
       propertyType: null,
       propertySubtype: null,
       bedrooms: {
@@ -51,7 +51,7 @@ export const CONVERSATION_STATES = {
     preferences: {
       publicTransport: null,
       schools: null,
-      timeline: null,
+      timeline: null, 
       hasPreApprovedLoan: null
     },
     userEmail: null

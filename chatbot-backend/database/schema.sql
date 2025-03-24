@@ -10,11 +10,15 @@ CREATE TABLE users (
 CREATE TABLE chat_sessions (
     id SERIAL PRIMARY KEY,
     session_id UUID NOT NULL,
-    list4free_user_id INTEGER, -- NULL for non-logged in users
-    list4free_email VARCHAR(255), -- NULL for non-logged in users
+    list4free_user_id VARCHAR(36), -- NULL for non-logged in users
+    user_email VARCHAR(255), -- Collected during chat
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    last_active TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    closed_at TIMESTAMP WITH TIME ZONE,
     is_active BOOLEAN DEFAULT true,
+    initial_search_criteria JSONB NOT NULL,
+    final_preferences JSONB,
+    conversation_summary JSONB,
+    main_app_search_id VARCHAR(36),
     UNIQUE(session_id)
 );
 
@@ -37,46 +41,46 @@ CREATE TABLE property_preferences (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- Create chat_messages table
-CREATE TABLE chat_messages (
-    id SERIAL PRIMARY KEY,
-    session_id INTEGER REFERENCES chat_sessions(id),
-    message_type VARCHAR(50) NOT NULL, -- 'bot' or 'user'
-    content TEXT NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
+-- -- Create chat_messages table
+-- CREATE TABLE chat_messages (
+--     id SERIAL PRIMARY KEY,
+--     session_id INTEGER REFERENCES chat_sessions(id),
+--     message_type VARCHAR(10) NOT NULL, -- 'bot' or 'user'
+--     content TEXT NOT NULL,
+--     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+-- );
 
--- Create search_history table
-CREATE TABLE search_history (
-    id SERIAL PRIMARY KEY,
-    session_id INTEGER REFERENCES chat_sessions(id),
-    search_criteria JSONB NOT NULL,
-    results_count INTEGER DEFAULT 0,
-    is_deep_search BOOLEAN DEFAULT false,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    completed_at TIMESTAMP WITH TIME ZONE,
-    email_sent BOOLEAN DEFAULT false,
-    email_sent_at TIMESTAMP WITH TIME ZONE
-);
+-- -- Create search_history table
+-- CREATE TABLE search_history (
+--     id SERIAL PRIMARY KEY,
+--     session_id INTEGER REFERENCES chat_sessions(id),
+--     search_criteria JSONB NOT NULL,
+--     results_count INTEGER DEFAULT 0,
+--     is_deep_search BOOLEAN DEFAULT false,
+--     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+--     completed_at TIMESTAMP WITH TIME ZONE,
+--     email_sent BOOLEAN DEFAULT false,
+--     email_sent_at TIMESTAMP WITH TIME ZONE
+-- );
 
--- Create conversation_state table to track the current state of each chat session
-CREATE TABLE conversation_state (
-    id SERIAL PRIMARY KEY,
-    session_id INTEGER REFERENCES chat_sessions(id),
-    current_step VARCHAR(50) NOT NULL, -- 'initial_popup', 'confirm_criteria', 'location', 'property_type', etc.
-    last_user_input TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(session_id)
-);
+-- -- Create conversation_state table to track the current state of each chat session
+-- CREATE TABLE conversation_state (
+--     id SERIAL PRIMARY KEY,
+--     session_id INTEGER REFERENCES chat_sessions(id),
+--     current_step VARCHAR(50) NOT NULL, -- 'initial_popup', 'confirm_criteria', 'location', 'property_type', etc.
+--     last_user_input TEXT,
+--     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+--     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+--     UNIQUE(session_id)
+-- );
 
 -- Create indexes for better query performance
 CREATE INDEX idx_chat_sessions_session_id ON chat_sessions(session_id);
 CREATE INDEX idx_chat_sessions_list4free_user_id ON chat_sessions(list4free_user_id);
-CREATE INDEX idx_property_preferences_session_id ON property_preferences(session_id);
-CREATE INDEX idx_chat_messages_session_id ON chat_messages(session_id);
-CREATE INDEX idx_search_history_session_id ON search_history(session_id);
-CREATE INDEX idx_conversation_state_session_id ON conversation_state(session_id);
+-- CREATE INDEX idx_property_preferences_session_id ON property_preferences(session_id);
+-- CREATE INDEX idx_chat_messages_session_id ON chat_messages(session_id);
+-- CREATE INDEX idx_search_history_session_id ON search_history(session_id);
+-- CREATE INDEX idx_conversation_state_session_id ON conversation_state(session_id);
 
 -- Create function to update last_active timestamp
 CREATE OR REPLACE FUNCTION update_last_active()
@@ -87,7 +91,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Create triggers for last_active updates
+-- Create trigger for last_active updates
 CREATE TRIGGER update_chat_sessions_last_active
     BEFORE UPDATE ON chat_sessions
     FOR EACH ROW
@@ -102,13 +106,13 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Create triggers for updated_at updates
-CREATE TRIGGER update_property_preferences_updated_at
-    BEFORE UPDATE ON property_preferences
-    FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at();
+-- -- Create triggers for updated_at updates
+-- CREATE TRIGGER update_property_preferences_updated_at
+--     BEFORE UPDATE ON property_preferences
+--     FOR EACH ROW
+--     EXECUTE FUNCTION update_updated_at();
 
-CREATE TRIGGER update_conversation_state_updated_at
-    BEFORE UPDATE ON conversation_state
-    FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at(); 
+-- CREATE TRIGGER update_conversation_state_updated_at
+--     BEFORE UPDATE ON conversation_state
+--     FOR EACH ROW
+--     EXECUTE FUNCTION update_updated_at(); 
