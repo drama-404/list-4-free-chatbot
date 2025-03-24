@@ -27,6 +27,8 @@ const ChatWidget = ({ initialResponse }) => {
     const [isTyping, setIsTyping] = useState(false);
     const [isMinimized, setIsMinimized] = useState(false);
     const chatLogRef = useRef(null);
+    const inputRef = useRef(null);
+    const [inputError, setInputError] = useState('');
 
   const API_URL = process.env.REACT_APP_API_URL;
   const CHAT_API_URL = process.env.REACT_APP_CHAT_API_URL;
@@ -250,7 +252,7 @@ const ChatWidget = ({ initialResponse }) => {
                         isHint: true
                     }, {
                         sender: 'bot',
-                        text: "Where should we send the information on all properties matching your preferences?\n\nPlease leave with us your email address and we'll come back to you within 2 hours."
+                        text: "Please leave with us your email address and we'll come back to you within 2 hours."
                     }]);
                     return null;
                 }
@@ -354,6 +356,29 @@ const ChatWidget = ({ initialResponse }) => {
         }
     }, [messages]);
 
+    // Function to determine if input should be enabled
+    const isInputEnabled = () => {
+        return state.currentState === CONVERSATION_STATES.BEDROOMS || 
+               state.currentState === CONVERSATION_STATES.EMAIL_REQUEST;
+    };
+
+    // Focus input when entering bedrooms or email state
+    useEffect(() => {
+        if (isInputEnabled() && inputRef.current) {
+            inputRef.current.focus();
+        }
+    }, [state.currentState]);
+
+    // Clear error when state changes or when input changes
+    useEffect(() => {
+        setInputError('');
+    }, [state.currentState]);
+
+    const handleInputChange = (e) => {
+        setUserInput(e.target.value);
+        setInputError(''); // Clear error when user types
+    };
+
     const renderMessageContent = (msg) => {
   return (
             <div className={`message-content ${msg.isHint ? 'hint-container' : ''}`}>
@@ -428,32 +453,48 @@ const ChatWidget = ({ initialResponse }) => {
 
             <form onSubmit={(e) => {
                 e.preventDefault();
-                if (userInput.trim() && !isLoading) {
-                    const inputType = state.currentState === CONVERSATION_STATES.EMAIL_REQUEST ? 'email' : 'text';
-                    if (validateInput(userInput, inputType)) {
+                if (userInput.trim() && !isLoading && isInputEnabled()) {
+                    if (state.currentState === CONVERSATION_STATES.EMAIL_REQUEST) {
+                        if (validateInput(userInput, 'email')) {
+                            setInputError(''); // Clear error
+                            sendMessage(userInput);
+                            setUserInput('');
+                        } else {
+                            setInputError('Please enter a valid email address');
+                        }
+                    } else {
                         sendMessage(userInput);
                         setUserInput('');
-                    } else {
-                        setMessages(prev => [...prev, {
-                            sender: 'bot',
-                            text: `Please enter a valid ${inputType}.`
-                        }]);
                     }
                 }
             }}>
-        <input 
-          type="text" 
-          value={userInput} 
-          onChange={e => setUserInput(e.target.value)} 
-          placeholder="Type your message..."
-                    disabled={isLoading}
-        />
-                <button type="submit" disabled={isLoading || !userInput.trim()}>
-                    {isLoading ? '...' : 'Send'}
-                </button>
-      </form>
-    </div>
-  );
+                <div className="input-container">
+                    {inputError && <div className="input-error">{inputError}</div>}
+                    <input
+                        ref={inputRef}
+                        type="text"
+                        value={userInput}
+                        onChange={handleInputChange}
+                        placeholder={
+                            state.currentState === CONVERSATION_STATES.BEDROOMS 
+                                ? "Enter number of bedrooms..." 
+                                : state.currentState === CONVERSATION_STATES.EMAIL_REQUEST 
+                                    ? "Enter your email address..."
+                                    : "Type your message..."
+                        }
+                        disabled={!isInputEnabled()}
+                        className={inputError ? 'has-error' : ''}
+                    />
+                    <button 
+                        type="submit" 
+                        disabled={!isInputEnabled() || !userInput.trim() || isLoading}
+                    >
+                        {isLoading ? '...' : 'Send'}
+                    </button>
+                </div>
+            </form>
+        </div>
+    );
 };
 
 export default ChatWidget;

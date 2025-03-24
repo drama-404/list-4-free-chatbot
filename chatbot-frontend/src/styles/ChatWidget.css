@@ -83,17 +83,17 @@
 .message {
     max-width: 80%;
     position: relative;
-  }
-  
-  .message p {
-    padding: 8px 12px; 
+}
+
+.message p {
+    padding: 8px 12px;
     margin: 0;
     font-size: 15px;
     line-height: 1.4;
     text-align: left;
-  }
-  
-  .message.bot {
+}
+
+.message.bot {
     align-self: flex-start;
     background: #E9E9EB;
     color: black;
@@ -101,9 +101,9 @@
     border-top-right-radius: 20px;
     border-bottom-right-radius: 20px;
     border-bottom-left-radius: 20px;
-  }
-  
-  .message.user {
+}
+
+.message.user {
     align-self: flex-end;
     background: linear-gradient(135deg, #007AFF, #00A2FF);
     color: white;
@@ -111,14 +111,14 @@
     border-top-left-radius: 20px;
     border-bottom-left-radius: 20px;
     border-bottom-right-radius: 20px;
-  }
+}
 
-  .message.bot .options {
-    background: #E9E9EB; 
+.message.bot .options {
+    background: #E9E9EB;
     border-bottom-left-radius: 20px;
     border-bottom-right-radius: 20px;
     overflow: hidden;
-  }
+}
 
 /* .options {
     display: flex;
@@ -149,12 +149,14 @@
     display: flex;
     flex-direction: column;
     margin-top: 1px;
-    border-left: 0.5px solid #D1D1D6; /* Add left border to container */
-    border-right: 0.5px solid #D1D1D6; /* Add right border to container */
-  }
-  
+    border-left: 0.5px solid #D1D1D6;
+    /* Add left border to container */
+    border-right: 0.5px solid #D1D1D6;
+    /* Add right border to container */
+}
 
-  /* .option-button {
+
+/* .option-button {
     background: white;
     border: none;
     padding: 8px 16px;
@@ -173,10 +175,11 @@
     background: white; 
   } */
 
-  .option-button {
+.option-button {
     background: white;
     border: none;
-    border-top: 0.5px solid #D1D1D6; /* Thinner top border */
+    border-top: 0.5px solid #D1D1D6;
+    /* Thinner top border */
     padding: 8px 16px;
     font-size: 15px;
     color: #007AFF;
@@ -184,21 +187,23 @@
     transition: all 0.2s ease;
     text-align: center;
     width: 100%;
-  }
-  
-  .option-button:hover {
+}
+
+.option-button:hover {
     text-decoration: underline;
     background: white;
-  }
-  
-  .option-button:first-child {
+}
+
+.option-button:first-child {
     border-top: 1px solid #D1D1D6;
-    margin-top: 0; /* Adjust first button margin */
-  }
-  
-  .option-button:last-child {
-    border-bottom: 0.5px solid #D1D1D6; /* Add bottom border to last button */
-  }
+    margin-top: 0;
+    /* Adjust first button margin */
+}
+
+.option-button:last-child {
+    border-bottom: 0.5px solid #D1D1D6;
+    /* Add bottom border to last button */
+}
 
 /* Chat input area */
 form {
@@ -207,6 +212,7 @@ form {
     border-top: 1px solid #E9E9EB;
     display: flex;
     gap: 12px;
+    position: relative;
 }
 
 input {
@@ -219,9 +225,50 @@ input {
     transition: border-color 0.2s ease;
 }
 
-input:focus {
+
+input:enabled {
     border-color: #007AFF;
+    transition: border-color 0.2s ease;
 }
+
+input:enabled:focus {
+    outline: none;
+    border-color: #007AFF;
+    box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.1);
+}
+
+input:disabled {
+    background-color: #f5f5f5;
+    cursor: not-allowed;
+    color: #999;
+}
+
+.input-container {
+    position: relative;
+    width: 100%;
+    display: flex;
+    flex-direction: row; 
+    gap: 12px;
+  align-items: flex-end;
+  }
+  
+  .input-error {
+    position: absolute;
+    top: -20px;
+    left: 0;
+    right: 0;
+    background-color: rgba(255, 0, 0, 0.1);
+    color: #dc3545;
+    font-size: 11px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    margin-bottom: 4px;
+    animation: fadeIn 0.2s ease-in;
+  }
+  
+  input.has-error {
+    border-color: #dc3545;
+  }
 
 button[type="submit"] {
     background: #007AFF;
@@ -232,15 +279,22 @@ button[type="submit"] {
     font-size: 15px;
     cursor: pointer;
     transition: background-color 0.2s ease;
+    white-space: nowrap;
 }
 
 button[type="submit"]:hover {
     background: #0066CC;
 }
 
-button[type="submit"]:disabled {
+/* button[type="submit"]:disabled {
     background: #B3D7FF;
     cursor: not-allowed;
+} */
+
+button[type="submit"]:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+    opacity: 0.7;
 }
 
 
@@ -303,45 +357,45 @@ button[type="submit"]:disabled {
 
 .message-content {
     width: 100%;
-  }
-  
-  .hint-container {
+}
+
+.hint-container {
     font-size: 12px;
     color: #666;
-  }
-  
-  .hint-text {
+}
+
+.hint-text {
     color: #666;
     font-size: 12px !important;
     font-style: italic;
     margin: 4px 0;
     text-align: left;
-  }
-  
-  .hint-list {
+}
+
+.hint-list {
     list-style: none;
     padding: 0;
     margin: 4px 0 8px 0;
     font-size: 12px;
     color: #666;
     text-align: left;
-  }
-  
-  .hint-list li {
+}
+
+.hint-list li {
     position: relative;
     padding-left: 12px;
     margin-bottom: 4px;
     line-height: 1.3;
-  }
-  
-  .message.bot .hint-text,
-  .message.bot .hint-list {
+}
+
+.message.bot .hint-text,
+.message.bot .hint-list {
     background: rgba(233, 233, 235, 0.5);
     border-left: 2px solid #007AFF;
     padding: 8px 12px;
     margin: 4px 0;
     border-radius: 4px;
-  }
+}
 
 @keyframes slideUp {
     from {
@@ -354,3 +408,14 @@ button[type="submit"]:disabled {
         opacity: 1;
     }
 }
+
+@keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(-5px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
