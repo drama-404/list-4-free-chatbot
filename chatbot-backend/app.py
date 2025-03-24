@@ -1,21 +1,41 @@
 # Main entry point for your Flask application.
 
-from flask import Flask, request, jsonify
+from flask import Flask
 from flask_cors import CORS
+from config import Config
 from routes.chat_routes import chat_bp
-from flask_sqlalchemy import SQLAlchemy
+from database.db_utils import init_db
+import os
+from dotenv import load_dotenv
 
-app = Flask(__name__)
-app.config.from_object('config.Config')  # Make sure  config.py is up and running
-CORS(app)  # Enable CORS for all routes
+# Load environment variables
+print("Current working directory:", os.getcwd())
+print("Looking for .env file...")
+load_dotenv()
+print("Environment variables loaded:", {
+    'DB_NAME': os.getenv('DB_NAME'),
+    'DB_USER': os.getenv('DB_USER'),
+    'DB_HOST': os.getenv('DB_HOST'),
+    'DB_PORT': os.getenv('DB_PORT')
+})
 
-# Register Blueprints
-app.register_blueprint(chat_bp, url_prefix='/api/chat')
+def create_app():
+    app = Flask(__name__)
+    app.config.from_object(Config)
+    
+    # Initialize CORS
+    CORS(app, origins=Config.CORS_ORIGINS)
+    
+    # Register blueprints
+    app.register_blueprint(chat_bp, url_prefix=f"{Config.API_PREFIX}/chat")
+    
+    # Initialize database
+    init_db()
+    
+    return app
 
-@app.route('/')
-def index():
-    return jsonify({'message': 'Chatbot API is up and running!'})
+app = create_app()
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=Config.DEBUG)
 
