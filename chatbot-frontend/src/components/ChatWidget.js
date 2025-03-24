@@ -166,27 +166,18 @@ const ChatWidget = ({ initialResponse }) => {
             case CONVERSATION_STATES.BEDROOMS:
                 const { min, max } = extractBedroomNumbers(input);
                 
-                // Validate and format the response
-                if (min === null && max === null && !input.toLowerCase().includes('studio')) {
-                    return {
-                        sender: 'bot',
-                        text: "I couldn't understand that format. Please specify the number of bedrooms using one of the formats shown above.",
-                        options: null
-                    };
-                }
-
-                // Format the confirmation message
+                // Format the bedroom confirmation message
                 let bedroomConfirmation = "";
                 if (min === 0 && max === 0) {
-                    bedroomConfirmation = "studio flat";
+                    bedroomConfirmation = "a studio flat";
                 } else if (min === null && max !== null) {
-                    bedroomConfirmation = `up to ${max} bedrooms`;
+                    bedroomConfirmation = `properties with up to ${max} bedroom${max !== 1 ? 's' : ''}`;
                 } else if (min !== null && max === null) {
-                    bedroomConfirmation = `${min}+ bedrooms`;
+                    bedroomConfirmation = `properties with ${min} or more bedroom${min !== 1 ? 's' : ''}`;
                 } else if (min === max) {
-                    bedroomConfirmation = `${min} bedroom${min !== 1 ? 's' : ''}`;
+                    bedroomConfirmation = `a ${min}-bedroom property`;
                 } else {
-                    bedroomConfirmation = `${min} to ${max} bedrooms`;
+                    bedroomConfirmation = `properties with ${min} to ${max} bedrooms`;
                 }
 
                 dispatch({ 
@@ -194,10 +185,9 @@ const ChatWidget = ({ initialResponse }) => {
                     payload: { bedrooms: { min, max } } 
                 });
 
-                // Send two messages in sequence
                 setMessages(prev => [...prev, {
                     sender: 'bot',
-                    text: `Got it! Looking for a ${bedroomConfirmation}.`
+                    text: `Got it! Looking for ${bedroomConfirmation}.`
                 }, {
                     sender: 'bot',
                     text: "Do you need public transport close to your property?",
@@ -205,7 +195,7 @@ const ChatWidget = ({ initialResponse }) => {
                 }]);
 
                 dispatch({ type: 'UPDATE_STATE', payload: CONVERSATION_STATES.PUBLIC_TRANSPORT });
-                return null; // Return null since we manually added the messages
+                return null;
 
             case CONVERSATION_STATES.PUBLIC_TRANSPORT:
                 dispatch({
@@ -278,7 +268,7 @@ const ChatWidget = ({ initialResponse }) => {
                         isHint: true
                     }, {
                         sender: 'bot',
-                        text: "Where should we send the information on all properties matching your preferences?\n\nPlease leave with us your email address and we'll come back to you within 2 hours."
+                        text: "Please leave with us your email address and we'll come back to you within 2 hours."
                     }]);
                     return null;
                 }
@@ -359,7 +349,8 @@ const ChatWidget = ({ initialResponse }) => {
     // Function to determine if input should be enabled
     const isInputEnabled = () => {
         return state.currentState === CONVERSATION_STATES.BEDROOMS || 
-               state.currentState === CONVERSATION_STATES.EMAIL_REQUEST;
+               state.currentState === CONVERSATION_STATES.EMAIL_REQUEST ||
+               state.currentState === CONVERSATION_STATES.EDIT_LOCATION;
     };
 
     // Focus input when entering bedrooms or email state
@@ -489,7 +480,8 @@ const ChatWidget = ({ initialResponse }) => {
                         type="submit" 
                         disabled={!isInputEnabled() || !userInput.trim() || isLoading}
                     >
-                        {isLoading ? '...' : 'Send'}
+                        {/* {isLoading ? '...' : 'Send'} */}
+                        Send
                     </button>
                 </div>
             </form>
