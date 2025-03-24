@@ -46,7 +46,7 @@ export const CONVERSATION_STATES = {
         max: null
       },
       price: null,
-      existingFilters: false
+      existingFilters: true
     },
     preferences: {
       publicTransport: null,
@@ -62,22 +62,30 @@ export const CONVERSATION_STATES = {
     let min = null;
     let max = null;
 
-    // Handle specific patterns
+    // Handle special cases
     if (text.includes('studio')) return { min: 0, max: 0 };
+    if (text.includes('no min') || text.includes('any min')) min = null;
+    if (text.includes('no max') || text.includes('any max')) max = null;
     
-    // Extract numbers from text
-    const numbers = text.match(/\d+/g);
-    if (numbers) {
-      if (text.includes('min') && text.includes('max')) {
-        min = parseInt(numbers[0]);
-        max = parseInt(numbers[1]);
-      } else if (text.includes('-') || text.includes('to')) {
-        min = parseInt(numbers[0]);
-        max = parseInt(numbers[1]);
-      } else {
-        min = parseInt(numbers[0]);
-        max = min;
-      }
+    // Extract numbers and keywords
+    const minMatch = text.match(/min(?:imum)?\s*(\d+)/i);
+    const maxMatch = text.match(/max(?:imum)?\s*(\d+)/i);
+    const rangeMatch = text.match(/(\d+)\s*(?:-|to)\s*(\d+)/);
+    const singleNumber = text.match(/^(\d+)$/);
+
+    if (minMatch && !text.includes('no min')) {
+      min = parseInt(minMatch[1]);
+    }
+    if (maxMatch && !text.includes('no max')) {
+      max = parseInt(maxMatch[1]);
+    }
+    if (rangeMatch) {
+      min = parseInt(rangeMatch[1]);
+      max = parseInt(rangeMatch[2]);
+    }
+    if (singleNumber) {
+      min = parseInt(singleNumber[1]);
+      max = min;
     }
 
     return { min, max };

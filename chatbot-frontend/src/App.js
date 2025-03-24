@@ -6,20 +6,21 @@ import InitialPopup from './components/InitialPopup';
 function App() {
   const [showChat, setShowChat] = useState(false);
   const [showPopup, setShowPopup] = useState(true);
+  const [initialResponse, setInitialResponse] = useState(null);
 
   const handlePopupResponse = (accepted) => {
     setShowPopup(false);
     if (accepted) {
       setShowChat(true);
+      setInitialResponse("Yes, please!");
     }
   };
 
   return (
     <div className="App">
       <header className="App-header">
-        {/* <img src={logo} className="App-logo" alt="logo" /> */}
         {showPopup && <InitialPopup onResponse={handlePopupResponse} />}
-        {showChat && <ChatWidget />}
+        {showChat && <ChatWidget initialResponse={initialResponse} />}
       </header>
     </div>
   );
