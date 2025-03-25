@@ -473,7 +473,7 @@ const ChatWidget = ({ initialResponse, searchCriteria, list4freeUserId, sessionI
                     // Add final message
                     setMessages(prev => [...prev, {
                         sender: 'bot',
-                        text: "Thank you for using our service! We'll be in touch soon with your personalized property recommendations.",
+                        text: "Great! Keep an eye on your inbox—and don't forget your spam folder just in case!\n\nThank you! 😊",
                         id: Date.now()
                     }]);
 
