@@ -86,48 +86,54 @@ def initiate_chat():
 @handle_db_errors
 def complete_chat():
     """Complete the chat session and send data to main app"""
+    logger.info("Received complete chat request")
+    
     data = request.get_json()
+    logger.info(f"Request data: {data}")
+    
     if not data or 'session_id' not in data or 'final_preferences' not in data:
+        logger.error("Missing required fields in request")
         return jsonify({'error': 'Session ID and final preferences are required'}), 400
     
     # Validate final preferences structure
     final_preferences = data['final_preferences']
     required_fields = ['location', 'propertyType', 'bedrooms', 'price']
-    for field in required_fields:
-        if field not in final_preferences:
-            return jsonify({'error': f'Missing required field in final preferences: {field}'}), 400
     
-    with get_db() as db:
-        session = db.query(ChatSession).filter(ChatSession.session_id == data['session_id']).first()
-        if not session:
-            return jsonify({'error': 'Session not found'}), 404
-        
-        # Update session with final data
-        session.final_preferences = final_preferences
-        session.user_email = data.get('user_email')
-        session.conversation_summary = data.get('conversation_summary')
-        session.closed_at = datetime.utcnow()
-        session.is_active = False
-        
-        # TODO: Make API call to main app with the collected data
-        # will be done asynchronously to not block the response
-        main_app_response = send_to_main_app({
-            'session_id': session.session_id,
-            'list4free_user_id': session.list4free_user_id,
-            'user_email': session.user_email,
-            'initial_search': session.initial_search_criteria,
-            'final_preferences': session.final_preferences,
-            'conversation_summary': session.conversation_summary
-        })
-        
-        # Store the main app's search ID if provided
-        if main_app_response and 'search_id' in main_app_response:
-            session.main_app_search_id = main_app_response['search_id']
-        
-        return jsonify({
-            'message': 'Chat session completed successfully',
-            'main_app_search_id': session.main_app_search_id
-        }), 200
+    logger.info(f"Validating final preferences: {final_preferences}")
+    
+    missing_fields = [field for field in required_fields if field not in final_preferences]
+    if missing_fields:
+        logger.error(f"Missing required fields in final preferences: {missing_fields}")
+        return jsonify({'error': f'Missing required fields in final preferences: {missing_fields}'}), 400
+    
+    try:
+        with get_db() as db:
+            logger.info(f"Looking for session with ID: {data['session_id']}")
+            session = db.query(ChatSession).filter(ChatSession.session_id == data['session_id']).first()
+            
+            if not session:
+                logger.error(f"Session not found: {data['session_id']}")
+                return jsonify({'error': 'Session not found'}), 404
+            
+            logger.info("Updating session with final data")
+            # Update session with final data
+            session.final_preferences = final_preferences
+            session.user_email = data.get('user_email')
+            session.conversation_summary = data.get('conversation_summary')
+            session.closed_at = datetime.utcnow()
+            session.is_active = False
+            
+            db.commit()
+            logger.info("Session updated successfully")
+            
+            return jsonify({
+                'message': 'Chat session completed successfully',
+                'session_id': session.session_id
+            }), 200
+            
+    except Exception as e:
+        logger.error(f"Error updating session: {str(e)}")
+        raise
 
 def generate_initial_popup(search_criteria, is_logged_in=False):
     """Generate the initial popup message based on search criteria and user status"""

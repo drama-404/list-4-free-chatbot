@@ -1,18 +1,22 @@
 import React, { useState, useReducer, useEffect, useRef } from 'react';
 import TypingIndicator from './TypingIndicator';
-import { 
-    CONVERSATION_STATES, 
-    PROPERTY_TYPES, 
-    TIMELINE_OPTIONS, 
-    initialState, 
-    createInitialStateWithFilters, 
+import {
+    CONVERSATION_STATES,
+    PROPERTY_TYPES,
+    TIMELINE_OPTIONS,
+    initialState,
+    createInitialStateWithFilters,
     generateConfirmationMessage,
-    extractBedroomNumbers } from '../utils/conversationState';
+    extractBedroomNumbers,
+    formatFinalPreferences,
+    formatConversationSummary
+} from '../utils/conversationState';
 import { initiateChat, completeChat } from '../utils/api';
 import MinimizedChat from './MinimizedChat';
 import '../styles/ChatWidget.css';
 
 const conversationReducer = (state, action) => {
+    console.log('Reducer action:', action);
     switch (action.type) {
         case 'UPDATE_STATE':
             return { ...state, currentState: action.payload };
@@ -312,10 +316,11 @@ const ChatWidget = ({ initialResponse, searchCriteria, list4freeUserId }) => {
                 if (emailRegex.test(input)) {
                     dispatch({ type: 'SET_EMAIL', payload: input });
                     dispatch({ type: 'UPDATE_STATE', payload: CONVERSATION_STATES.COMPLETED });
-                    return {
-                        sender: 'bot',
-                        text: "Great! Keep an eye on your inbox—and don't forget your spam folder just in case!\n\nThank you! 😊"
-                    };
+                    // return {
+                    //     sender: 'bot',
+                    //     text: "Great! Keep an eye on your inbox—and don't forget your spam folder just in case!\n\nThank you! 😊"
+                    // };
+                    return null;
                 } else {
                     return {
                         sender: 'bot',
@@ -325,29 +330,59 @@ const ChatWidget = ({ initialResponse, searchCriteria, list4freeUserId }) => {
 
             case CONVERSATION_STATES.COMPLETED:
                 try {
-                    // Prepare the final preferences
-                    const finalPreferences = {
-                        ...state.filters,
-                        ...state.preferences
-                    };
+                    console.log('Entering COMPLETED state');
+                    console.log('Current state:', state);
+                    console.log('Session ID:', sessionId);
+
+                    // Ensure we have all required fields for final preferences
+                    const finalPreferences = formatFinalPreferences(state);
+                    console.log('Formatted final preferences:', finalPreferences);
+
+                    // Validate required fields
+                    const requiredFields = ['location', 'propertyType', 'bedrooms', 'price'];
+                    const missingFields = requiredFields.filter(field => !finalPreferences[field]);
+
+                    if (missingFields.length > 0) {
+                        console.warn('Missing required fields:', missingFields);
+                        // handle differently
+                    }
+
+                    // Format conversation summary
+                    const conversationSummary = formatConversationSummary(messages);
+                    console.log('Formatted conversation summary:', conversationSummary);
 
                     // Call the backend to complete the chat
-                    await completeChat(
+                    console.log('Calling completeChat with:', {
+                        sessionId,
+                        finalPreferences,
+                        userEmail: state.userEmail,
+                        conversationSummary
+                    });
+
+                    // Call the backend to complete the chat
+                    const response = await completeChat(
                         sessionId,
                         finalPreferences,
                         state.userEmail,
-                        { messages } // conversation summary
+                        conversationSummary
                     );
+
+                    console.log('Chat completed successfully:', response);
 
                     return {
                         sender: 'bot',
-                        text: "Thank you for using our service! We'll be in touch soon with your personalized property recommendations."
+                        text: "Great! Keep an eye on your inbox—and don't forget your spam folder just in case!\n\nThank you! 😊"
                     };
                 } catch (error) {
-                    console.error('Error completing chat:', error);
+                    console.log('State at error:', {
+                        currentState: state.currentState,
+                        filters: state.filters,
+                        preferences: state.preferences,
+                        userEmail: state.userEmail
+                    });
                     return {
                         sender: 'bot',
-                        text: "Thank you for using our service! We'll process your preferences and get back to you soon."
+                        text: "Thank you for using our service! We'll process your request and get back to you soon."
                     };
                 }
 
@@ -464,6 +499,17 @@ const ChatWidget = ({ initialResponse, searchCriteria, list4freeUserId }) => {
     useEffect(() => {
         setInputError('');
     }, [state.currentState]);
+
+        // Add state change listener
+        useEffect(() => {
+            console.log('Conversation state changed:', {
+                currentState: state.currentState,
+                filters: state.filters,
+                preferences: state.preferences,
+                userEmail: state.userEmail,
+                sessionId: sessionId
+            });
+        }, [state, sessionId]);
 
     const handleInputChange = (e) => {
         setUserInput(e.target.value);

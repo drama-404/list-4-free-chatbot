@@ -11,6 +11,11 @@ const ChatContainer = () => {
     const [initialResponse, setInitialResponse] = useState(null);
     const [sessionId, setSessionId] = useState(null);
 
+    // Add logging for sessionId
+    useEffect(() => {
+        console.log('ChatContainer sessionId:', sessionId);
+    }, [sessionId]);
+
     // Function to handle API response
     const handleInitiateResponse = (data) => {
         if (data.frontend_message) {
@@ -26,10 +31,10 @@ const ChatContainer = () => {
         // Create a function to handle the API response
         const handleApiResponse = async () => {
             try {
-                // Make the API call when needed (you'll trigger this from your main app)
+                // Make the API call when needed (will trigger this from your main app)
                 const response = await initiateChat({
                     location: "London",
-                    propertyType: "Retail",
+                    propertyType: "Residential",
                     propertySubtype: null,
                     bedrooms: {
                         min: null,
@@ -63,7 +68,7 @@ const ChatContainer = () => {
         <>
             {showPopup && <InitialPopup onResponse={handlePopupResponse} />}
             {showChat && (
-                <ChatWidget 
+                <ChatWidget
                     initialResponse={initialResponse}
                     searchCriteria={searchCriteria}
                     list4freeUserId={list4freeUserId}

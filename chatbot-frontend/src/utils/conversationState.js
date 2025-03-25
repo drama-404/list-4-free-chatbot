@@ -178,3 +178,32 @@ export const extractBedroomNumbers = (input) => {
 
   return { min, max };
 };
+
+
+
+export const formatFinalPreferences = (state) => {
+  return {
+    // Required fields
+    location: state.filters.location,
+    propertyType: state.filters.propertyType,
+    propertySubtype: state.filters.propertySubtype,
+    bedrooms: state.filters.bedrooms,
+    price: state.filters.price,
+    // Additional preference fields
+    preferences: {
+      publicTransport: state.preferences.publicTransport,
+      schools: state.preferences.schools,
+      timeline: state.preferences.timeline,
+      hasPreApprovedLoan: state.preferences.hasPreApprovedLoan
+    }
+  };
+};
+
+
+export const formatConversationSummary = (messages) => {
+  return messages.map(msg => ({
+    sender: msg.sender,
+    text: msg.text,
+    timestamp: new Date().toISOString()
+  }));
+};
