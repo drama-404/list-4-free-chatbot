@@ -31,32 +31,25 @@ const conversationReducer = (state, action) => {
     }
 };
 
-const ChatWidget = ({ initialResponse, searchCriteria, list4freeUserId }) => {
+const ChatWidget = ({ initialResponse, searchCriteria, list4freeUserId, sessionId }) => {
     const [messages, setMessages] = useState([]);
     const [userInput, setUserInput] = useState('');
-    //   const [state, dispatch] = useReducer(conversationReducer, initialState);
-    const [state, dispatch] = useReducer(
-        conversationReducer,
+    const [state, dispatch] = useReducer(conversationReducer, 
         searchCriteria ? createInitialStateWithFilters(searchCriteria) : initialState
     );
     const [isLoading, setIsLoading] = useState(false);
     const [isTyping, setIsTyping] = useState(false);
     const [isMinimized, setIsMinimized] = useState(false);
-    const [sessionId, setSessionId] = useState(null);
     const chatLogRef = useRef(null);
     const inputRef = useRef(null);
     const [inputError, setInputError] = useState('');
     const [lastActiveMessageId, setLastActiveMessageId] = useState(null);
+    
+    // Add ref to track if chat has been completed
+    const hasCompletedRef = useRef(false);
 
     const API_URL = process.env.REACT_APP_API_URL;
     const CHAT_API_URL = process.env.REACT_APP_CHAT_API_URL;
-
-    //   const getInitialMessage = () => ({
-    //     sender: 'bot',
-    //     text: "Looks like there aren't any properties matching your search. Would you like us to conduct a deeper search on the web?",
-    //     options: ["Yes, please!", "No, thanks."]
-    //   });
-
 
     const simulateTyping = () => {
         setIsTyping(true);
@@ -314,13 +307,10 @@ const ChatWidget = ({ initialResponse, searchCriteria, list4freeUserId }) => {
             case CONVERSATION_STATES.EMAIL_REQUEST:
                 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
                 if (emailRegex.test(input)) {
+                    console.log('Valid email provided, transitioning to COMPLETED state');
                     dispatch({ type: 'SET_EMAIL', payload: input });
                     dispatch({ type: 'UPDATE_STATE', payload: CONVERSATION_STATES.COMPLETED });
-                    // return {
-                    //     sender: 'bot',
-                    //     text: "Great! Keep an eye on your inbox—and don't forget your spam folder just in case!\n\nThank you! 😊"
-                    // };
-                    return null;
+                    return null; // Don't return a message, let the useEffect handle it
                 } else {
                     return {
                         sender: 'bot',
@@ -329,62 +319,8 @@ const ChatWidget = ({ initialResponse, searchCriteria, list4freeUserId }) => {
                 }
 
             case CONVERSATION_STATES.COMPLETED:
-                try {
-                    console.log('Entering COMPLETED state');
-                    console.log('Current state:', state);
-                    console.log('Session ID:', sessionId);
-
-                    // Ensure we have all required fields for final preferences
-                    const finalPreferences = formatFinalPreferences(state);
-                    console.log('Formatted final preferences:', finalPreferences);
-
-                    // Validate required fields
-                    const requiredFields = ['location', 'propertyType', 'bedrooms', 'price'];
-                    const missingFields = requiredFields.filter(field => !finalPreferences[field]);
-
-                    if (missingFields.length > 0) {
-                        console.warn('Missing required fields:', missingFields);
-                        // handle differently
-                    }
-
-                    // Format conversation summary
-                    const conversationSummary = formatConversationSummary(messages);
-                    console.log('Formatted conversation summary:', conversationSummary);
-
-                    // Call the backend to complete the chat
-                    console.log('Calling completeChat with:', {
-                        sessionId,
-                        finalPreferences,
-                        userEmail: state.userEmail,
-                        conversationSummary
-                    });
-
-                    // Call the backend to complete the chat
-                    const response = await completeChat(
-                        sessionId,
-                        finalPreferences,
-                        state.userEmail,
-                        conversationSummary
-                    );
-
-                    console.log('Chat completed successfully:', response);
-
-                    return {
-                        sender: 'bot',
-                        text: "Great! Keep an eye on your inbox—and don't forget your spam folder just in case!\n\nThank you! 😊"
-                    };
-                } catch (error) {
-                    console.log('State at error:', {
-                        currentState: state.currentState,
-                        filters: state.filters,
-                        preferences: state.preferences,
-                        userEmail: state.userEmail
-                    });
-                    return {
-                        sender: 'bot',
-                        text: "Thank you for using our service! We'll process your request and get back to you soon."
-                    };
-                }
+                // This case might not be needed anymore since we're handling it in useEffect
+                return null;
 
             default:
                 return null;
@@ -432,7 +368,7 @@ const ChatWidget = ({ initialResponse, searchCriteria, list4freeUserId }) => {
                 setIsLoading(true);
                 // Call the backend to initiate chat
                 const response = await initiateChat(searchCriteria, list4freeUserId);
-                setSessionId(response.session_id);
+                // setSessionId(response.session_id);
 
                 // Update the conversation state with the search criteria
                 dispatch({
@@ -500,16 +436,66 @@ const ChatWidget = ({ initialResponse, searchCriteria, list4freeUserId }) => {
         setInputError('');
     }, [state.currentState]);
 
-        // Add state change listener
-        useEffect(() => {
-            console.log('Conversation state changed:', {
-                currentState: state.currentState,
-                filters: state.filters,
-                preferences: state.preferences,
-                userEmail: state.userEmail,
-                sessionId: sessionId
-            });
-        }, [state, sessionId]);
+    // Update the useEffect to handle COMPLETED state
+    useEffect(() => {
+        const handleCompletedState = async () => {
+            // Only proceed if we're in COMPLETED state and haven't already completed
+            if (state.currentState === CONVERSATION_STATES.COMPLETED && !hasCompletedRef.current) {
+                console.log('Handling COMPLETED state');
+                hasCompletedRef.current = true; // Mark as completed
+
+                try {
+                    // Format final preferences
+                    const finalPreferences = formatFinalPreferences(state);
+                    console.log('Formatted final preferences:', finalPreferences);
+
+                    // Format conversation summary
+                    const conversationSummary = formatConversationSummary(messages);
+                    console.log('Formatted conversation summary:', conversationSummary);
+
+                    // Call the backend to complete the chat
+                    console.log('Calling completeChat with:', {
+                        sessionId,
+                        finalPreferences,
+                        userEmail: state.userEmail,
+                        conversationSummary
+                    });
+
+                    const response = await completeChat(
+                        sessionId,
+                        finalPreferences,
+                        state.userEmail,
+                        conversationSummary
+                    );
+
+                    console.log('Chat completed successfully:', response);
+
+                    // Add final message
+                    setMessages(prev => [...prev, {
+                        sender: 'bot',
+                        text: "Thank you for using our service! We'll be in touch soon with your personalized property recommendations.",
+                        id: Date.now()
+                    }]);
+
+                } catch (error) {
+                    console.error('Error in COMPLETED state:', error);
+                    console.error('Error details:', {
+                        message: error.message,
+                        stack: error.stack
+                    });
+
+                    // Add error message
+                    setMessages(prev => [...prev, {
+                        sender: 'bot',
+                        text: "Thank you for using our service! We'll process your preferences and get back to you soon.",
+                        id: Date.now()
+                    }]);
+                }
+            }
+        };
+
+        handleCompletedState();
+    }, [state.currentState, sessionId]); // Only depend on state.currentState and sessionId
 
     const handleInputChange = (e) => {
         setUserInput(e.target.value);

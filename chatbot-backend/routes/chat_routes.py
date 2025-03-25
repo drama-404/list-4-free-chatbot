@@ -86,54 +86,50 @@ def initiate_chat():
 @handle_db_errors
 def complete_chat():
     """Complete the chat session and send data to main app"""
-    logger.info("Received complete chat request")
-    
-    data = request.get_json()
-    logger.info(f"Request data: {data}")
-    
-    if not data or 'session_id' not in data or 'final_preferences' not in data:
-        logger.error("Missing required fields in request")
-        return jsonify({'error': 'Session ID and final preferences are required'}), 400
-    
-    # Validate final preferences structure
-    final_preferences = data['final_preferences']
-    required_fields = ['location', 'propertyType', 'bedrooms', 'price']
-    
-    logger.info(f"Validating final preferences: {final_preferences}")
-    
-    missing_fields = [field for field in required_fields if field not in final_preferences]
-    if missing_fields:
-        logger.error(f"Missing required fields in final preferences: {missing_fields}")
-        return jsonify({'error': f'Missing required fields in final preferences: {missing_fields}'}), 400
-    
     try:
+        data = request.get_json()
+        logger.info(f"Received complete chat request with data: {data}")
+        
+        if not data or 'session_id' not in data or 'final_preferences' not in data:
+            logger.error("Missing required fields in request")
+            return jsonify({'error': 'Session ID and final preferences are required'}), 400
+        
+        # Log the incoming data
+        logger.info(f"Session ID: {data['session_id']}")
+        logger.info(f"Final preferences: {data['final_preferences']}")
+        logger.info(f"User email: {data.get('user_email')}")
+        
         with get_db() as db:
-            logger.info(f"Looking for session with ID: {data['session_id']}")
             session = db.query(ChatSession).filter(ChatSession.session_id == data['session_id']).first()
             
             if not session:
                 logger.error(f"Session not found: {data['session_id']}")
                 return jsonify({'error': 'Session not found'}), 404
             
-            logger.info("Updating session with final data")
-            # Update session with final data
-            session.final_preferences = final_preferences
-            session.user_email = data.get('user_email')
-            session.conversation_summary = data.get('conversation_summary')
-            session.closed_at = datetime.utcnow()
-            session.is_active = False
-            
-            db.commit()
-            logger.info("Session updated successfully")
-            
-            return jsonify({
-                'message': 'Chat session completed successfully',
-                'session_id': session.session_id
-            }), 200
-            
+            try:
+                # Update session with final data
+                session.final_preferences = data['final_preferences']
+                session.user_email = data.get('user_email')
+                session.conversation_summary = data.get('conversation_summary')
+                session.closed_at = datetime.utcnow()
+                session.is_active = False
+                
+                db.commit()
+                logger.info(f"Successfully updated session {data['session_id']}")
+                
+                return jsonify({
+                    'message': 'Chat session completed successfully',
+                    'session_id': session.session_id
+                }), 200
+                
+            except Exception as e:
+                logger.error(f"Error updating session: {str(e)}")
+                db.rollback()
+                raise
+                
     except Exception as e:
-        logger.error(f"Error updating session: {str(e)}")
-        raise
+        logger.error(f"Error in complete_chat: {str(e)}")
+        return jsonify({'error': str(e)}), 500
 
 def generate_initial_popup(search_criteria, is_logged_in=False):
     """Generate the initial popup message based on search criteria and user status"""

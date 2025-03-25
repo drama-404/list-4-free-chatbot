@@ -30,13 +30,6 @@ export const initiateChat = async (searchCriteria, list4freeUserId = null) => {
 
 export const completeChat = async (sessionId, finalPreferences, userEmail = null, conversationSummary) => {
     try {
-        console.log('Attempting to complete chat with:', {
-            sessionId,
-            finalPreferences,
-            userEmail,
-            conversationSummary
-        });
-
         const requestBody = {
             session_id: sessionId,
             final_preferences: finalPreferences,
@@ -44,8 +37,7 @@ export const completeChat = async (sessionId, finalPreferences, userEmail = null
             conversation_summary: conversationSummary
         };
 
-        console.log('Making API call to:', `${API_URL}/chat/complete`);
-        console.log('Request body:', JSON.stringify(requestBody, null, 2));
+        console.log('Complete chat request body:', JSON.stringify(requestBody, null, 2));
 
         const response = await fetch(`${API_URL}/chat/complete`, {
             method: 'POST',
@@ -66,10 +58,6 @@ export const completeChat = async (sessionId, finalPreferences, userEmail = null
         return responseData;
     } catch (error) {
         console.error('Error in completeChat:', error);
-        console.error('Error details:', {
-            message: error.message,
-            stack: error.stack
-        });
         throw error;
     }
 };

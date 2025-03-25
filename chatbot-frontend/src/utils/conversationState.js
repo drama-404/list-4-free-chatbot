@@ -182,21 +182,34 @@ export const extractBedroomNumbers = (input) => {
 
 
 export const formatFinalPreferences = (state) => {
-  return {
-    // Required fields
-    location: state.filters.location,
-    propertyType: state.filters.propertyType,
-    propertySubtype: state.filters.propertySubtype,
-    bedrooms: state.filters.bedrooms,
-    price: state.filters.price,
-    // Additional preference fields
-    preferences: {
-      publicTransport: state.preferences.publicTransport,
-      schools: state.preferences.schools,
-      timeline: state.preferences.timeline,
-      hasPreApprovedLoan: state.preferences.hasPreApprovedLoan
-    }
+  // Create a clean preferences object without any undefined values
+  const preferences = {
+    location: state.filters.location || null,
+    propertyType: state.filters.propertyType || null,
+    propertySubtype: state.filters.propertySubtype || null,
+    bedrooms: {
+      min: state.filters.bedrooms?.min || null,
+      max: state.filters.bedrooms?.max || null
+    },
+    price: {
+      min: state.filters.price?.min || null,
+      max: state.filters.price?.max || null
+    },
+    // Additional preferences
+    publicTransport: state.preferences.publicTransport || null,
+    schools: state.preferences.schools || null,
+    timeline: state.preferences.timeline || null,
+    hasPreApprovedLoan: state.preferences.hasPreApprovedLoan || null
   };
+
+  // Remove any null values to keep the object clean
+  Object.keys(preferences).forEach(key => {
+    if (preferences[key] === null) {
+      delete preferences[key];
+    }
+  });
+
+  return preferences;
 };
 
 
@@ -204,6 +217,7 @@ export const formatConversationSummary = (messages) => {
   return messages.map(msg => ({
     sender: msg.sender,
     text: msg.text,
-    timestamp: new Date().toISOString()
-  }));
+    timestamp: msg.timestamp || new Date().toISOString(),
+    options: msg.options || null // Include options if they exist
+  })).filter(msg => msg.text); // Filter out any messages without text
 };

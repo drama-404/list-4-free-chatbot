@@ -35,14 +35,14 @@ const ChatContainer = () => {
                 const response = await initiateChat({
                     location: "London",
                     propertyType: "Residential",
-                    propertySubtype: null,
+                    propertySubtype: "flat",
                     bedrooms: {
-                        min: null,
-                        max: null
+                        min: 2,
+                        max: 4
                     },
                     price: {
-                        min: null,
-                        max: 1000000
+                        min: 200000,
+                        max: 500000
                     }
                 }, "user123");
 
