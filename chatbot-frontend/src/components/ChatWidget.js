@@ -1,6 +1,13 @@
 import React, { useState, useReducer, useEffect, useRef } from 'react';
 import TypingIndicator from './TypingIndicator';
-import { CONVERSATION_STATES, PROPERTY_TYPES, TIMELINE_OPTIONS, initialState, extractBedroomNumbers } from '../utils/conversationState';
+import { 
+    CONVERSATION_STATES, 
+    PROPERTY_TYPES, 
+    TIMELINE_OPTIONS, 
+    initialState, 
+    createInitialStateWithFilters, 
+    generateConfirmationMessage,
+    extractBedroomNumbers } from '../utils/conversationState';
 import { initiateChat, completeChat } from '../utils/api';
 import MinimizedChat from './MinimizedChat';
 import '../styles/ChatWidget.css';
@@ -21,20 +28,24 @@ const conversationReducer = (state, action) => {
 };
 
 const ChatWidget = ({ initialResponse, searchCriteria, list4freeUserId }) => {
-  const [messages, setMessages] = useState([]);
-  const [userInput, setUserInput] = useState('');
-  const [state, dispatch] = useReducer(conversationReducer, initialState);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isTyping, setIsTyping] = useState(false);
-  const [isMinimized, setIsMinimized] = useState(false);
-  const [sessionId, setSessionId] = useState(null);
-  const chatLogRef = useRef(null);
-  const inputRef = useRef(null);
-  const [inputError, setInputError] = useState('');
-  const [lastActiveMessageId, setLastActiveMessageId] = useState(null);
+    const [messages, setMessages] = useState([]);
+    const [userInput, setUserInput] = useState('');
+    //   const [state, dispatch] = useReducer(conversationReducer, initialState);
+    const [state, dispatch] = useReducer(
+        conversationReducer,
+        searchCriteria ? createInitialStateWithFilters(searchCriteria) : initialState
+    );
+    const [isLoading, setIsLoading] = useState(false);
+    const [isTyping, setIsTyping] = useState(false);
+    const [isMinimized, setIsMinimized] = useState(false);
+    const [sessionId, setSessionId] = useState(null);
+    const chatLogRef = useRef(null);
+    const inputRef = useRef(null);
+    const [inputError, setInputError] = useState('');
+    const [lastActiveMessageId, setLastActiveMessageId] = useState(null);
 
-  const API_URL = process.env.REACT_APP_API_URL;
-  const CHAT_API_URL = process.env.REACT_APP_CHAT_API_URL;
+    const API_URL = process.env.REACT_APP_API_URL;
+    const CHAT_API_URL = process.env.REACT_APP_CHAT_API_URL;
 
     //   const getInitialMessage = () => ({
     //     sender: 'bot',
@@ -76,13 +87,14 @@ const ChatWidget = ({ initialResponse, searchCriteria, list4freeUserId }) => {
             case CONVERSATION_STATES.INITIAL:
                 if (input === "Yes, please!") {
                     dispatch({ type: 'UPDATE_STATE', payload: CONVERSATION_STATES.CONFIRM_FILTERS });
-                    
+
                     // Check if there are existing filters
                     if (state.filters.existingFilters) {
+                        const confirmationMessage = generateConfirmationMessage(state.filters);
                         // When we have filters from the search
                         return {
                             sender: 'bot',
-                            text: `Just to confirm, you're looking for a ${state.filters.propertyType || '[property type]'} in ${state.filters.location || '[location]'} under ${state.filters.price || '[price]'}? Do you want to refine these details?`,
+                            text: confirmationMessage,
                             options: ["Confirm", "Edit"]
                         };
                     } else {
@@ -123,30 +135,30 @@ const ChatWidget = ({ initialResponse, searchCriteria, list4freeUserId }) => {
                 break;
 
             case CONVERSATION_STATES.EDIT_LOCATION:
-                dispatch({ 
-                    type: 'UPDATE_FILTERS', 
-                    payload: { location: input } 
+                dispatch({
+                    type: 'UPDATE_FILTERS',
+                    payload: { location: input }
                 });
                 dispatch({ type: 'UPDATE_STATE', payload: CONVERSATION_STATES.PROPERTY_TYPE });
                 return {
                     sender: 'bot',
                     text: "What type of property are you looking for?",
-                    options: Object.values(PROPERTY_TYPES).map(type => 
+                    options: Object.values(PROPERTY_TYPES).map(type =>
                         typeof type === 'string' ? type : type.label
                     )
                 };
 
             case CONVERSATION_STATES.PROPERTY_TYPE:
-                dispatch({ 
-                    type: 'UPDATE_FILTERS', 
-                    payload: { propertyType: input } 
+                dispatch({
+                    type: 'UPDATE_FILTERS',
+                    payload: { propertyType: input }
                 });
-                
+
                 if (input === "Residential") {
                     const questionId = Date.now();
                     const hintId = questionId + 1;
                     setLastActiveMessageId(questionId);
-                    
+
                     setMessages(prev => [...prev, {
                         sender: 'bot',
                         text: "How many bedrooms are you looking for?",
@@ -171,7 +183,7 @@ const ChatWidget = ({ initialResponse, searchCriteria, list4freeUserId }) => {
 
             case CONVERSATION_STATES.BEDROOMS:
                 const { min, max } = extractBedroomNumbers(input);
-                
+
                 // Format the bedroom confirmation message
                 let bedroomConfirmation = "";
                 if (min === 0 && max === 0) {
@@ -186,9 +198,9 @@ const ChatWidget = ({ initialResponse, searchCriteria, list4freeUserId }) => {
                     bedroomConfirmation = `properties with ${min} to ${max} bedrooms`;
                 }
 
-                dispatch({ 
-                    type: 'UPDATE_FILTERS', 
-                    payload: { bedrooms: { min, max } } 
+                dispatch({
+                    type: 'UPDATE_FILTERS',
+                    payload: { bedrooms: { min, max } }
                 });
 
                 const confirmMessageId = Date.now();
@@ -234,11 +246,11 @@ const ChatWidget = ({ initialResponse, searchCriteria, list4freeUserId }) => {
                 };
 
             case CONVERSATION_STATES.TIMELINE:
-                dispatch({ 
-                    type: 'UPDATE_PREFERENCES', 
-                    payload: { timeline: input } 
+                dispatch({
+                    type: 'UPDATE_PREFERENCES',
+                    payload: { timeline: input }
                 });
-                
+
                 if (input === "ASAP") {
                     dispatch({ type: 'UPDATE_STATE', payload: CONVERSATION_STATES.FINANCIAL_READINESS });
                     return {
@@ -289,7 +301,7 @@ const ChatWidget = ({ initialResponse, searchCriteria, list4freeUserId }) => {
                         id: Date.now()
                     }, {
                         sender: 'bot',
-                        text: "Where should we send the information on all properties matching your preferences?\n\nPlease leave with us your email address and we'll come back to you within 2 hours.",
+                        text: "Please leave with us your email address and we'll come back to you within 2 hours.",
                         id: Date.now() + 1
                     }]);
                     return null;
@@ -346,7 +358,7 @@ const ChatWidget = ({ initialResponse, searchCriteria, list4freeUserId }) => {
 
     const sendMessage = async (message) => {
         setLastActiveMessageId(null);
-        
+
         // Add user message
         const userMessageId = Date.now();
         setMessages(prev => [...prev, {
@@ -388,8 +400,8 @@ const ChatWidget = ({ initialResponse, searchCriteria, list4freeUserId }) => {
                 setSessionId(response.session_id);
 
                 // Update the conversation state with the search criteria
-                dispatch({ 
-                    type: 'UPDATE_FILTERS', 
+                dispatch({
+                    type: 'UPDATE_FILTERS',
                     payload: {
                         ...searchCriteria,
                         existingFilters: true
@@ -436,9 +448,9 @@ const ChatWidget = ({ initialResponse, searchCriteria, list4freeUserId }) => {
 
     // Function to determine if input should be enabled
     const isInputEnabled = () => {
-        return state.currentState === CONVERSATION_STATES.BEDROOMS || 
-               state.currentState === CONVERSATION_STATES.EMAIL_REQUEST ||
-               state.currentState === CONVERSATION_STATES.EDIT_LOCATION;
+        return state.currentState === CONVERSATION_STATES.BEDROOMS ||
+            state.currentState === CONVERSATION_STATES.EMAIL_REQUEST ||
+            state.currentState === CONVERSATION_STATES.EDIT_LOCATION;
     };
 
     // Focus input when entering bedrooms or email state
@@ -556,17 +568,17 @@ const ChatWidget = ({ initialResponse, searchCriteria, list4freeUserId }) => {
                         value={userInput}
                         onChange={handleInputChange}
                         placeholder={
-                            state.currentState === CONVERSATION_STATES.BEDROOMS 
-                                ? "Enter number of bedrooms..." 
-                                : state.currentState === CONVERSATION_STATES.EMAIL_REQUEST 
+                            state.currentState === CONVERSATION_STATES.BEDROOMS
+                                ? "Enter number of bedrooms..."
+                                : state.currentState === CONVERSATION_STATES.EMAIL_REQUEST
                                     ? "Enter your email address..."
                                     : "Type your message..."
                         }
                         disabled={!isInputEnabled()}
                         className={inputError ? 'has-error' : ''}
                     />
-                    <button 
-                        type="submit" 
+                    <button
+                        type="submit"
                         disabled={!isInputEnabled() || !userInput.trim() || isLoading}
                     >
                         {/* {isLoading ? '...' : 'Send'} */}

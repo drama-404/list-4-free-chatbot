@@ -110,7 +110,7 @@ def complete_chat():
         session.is_active = False
         
         # TODO: Make API call to main app with the collected data
-        # This should be done asynchronously to not block the response
+        # will be done asynchronously to not block the response
         main_app_response = send_to_main_app({
             'session_id': session.session_id,
             'list4free_user_id': session.list4free_user_id,
@@ -131,10 +131,10 @@ def complete_chat():
 
 def generate_initial_popup(search_criteria, is_logged_in=False):
     """Generate the initial popup message based on search criteria and user status"""
-    return "Initial popup message"
+    return ""
 
 def send_to_main_app(data):
     """Send collected data to main app"""
     # TODO: Implement API call to main app
-    # This should be done asynchronously
+    #  will be done asynchronously
     return {'search_id': 'placeholder-search-id'}

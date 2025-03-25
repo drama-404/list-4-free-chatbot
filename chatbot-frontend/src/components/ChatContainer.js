@@ -29,15 +29,15 @@ const ChatContainer = () => {
                 // Make the API call when needed (you'll trigger this from your main app)
                 const response = await initiateChat({
                     location: "London",
-                    propertyType: "Residential",
-                    propertySubtype: "Detached",
+                    propertyType: "Retail",
+                    propertySubtype: null,
                     bedrooms: {
-                        min: 2,
-                        max: 4
+                        min: null,
+                        max: null
                     },
                     price: {
-                        min: 200000,
-                        max: 500000
+                        min: null,
+                        max: 1000000
                     }
                 }, "user123");
 
@@ -47,7 +47,7 @@ const ChatContainer = () => {
             }
         };
 
-        // For testing purposes, you can uncomment this to auto-trigger the API call
+        // For testing purposes
         handleApiResponse();
     }, []);
 
