@@ -74,8 +74,8 @@ def initiate_chat():
             'list4freeUserId': data.get('list4free_user_id')
         }
         
-        # In a real implementation, you would use WebSocket or Server-Sent Events
-        # For now, we'll just return the data and let the frontend handle it
+        # TO DO use WebSocket or Server-Sent Events
+        # For now, we'll just return the data the frontend wil handle it
         return jsonify({
             'session_id': session_id,
             'initial_popup': initial_popup,
