@@ -1,6 +1,6 @@
 # List4Free Chatbot
 
-A full-stack application for a property search chatbot, built with Flask (Python) backend and React frontend.
+A full-stack application for a property search chatbot, built with Flask (Python) backend and React frontend. The chatbot helps users find properties by collecting their preferences through natural conversation and searching across multiple property websites.
 
 ## Project Structure
 
@@ -10,6 +10,10 @@ list-4-free-chatbot/
 │   ├── models/         # Database models
 │   ├── routes/         # API routes
 │   ├── database/       # Database utilities
+│   ├── scrapers/       # Property scraping module
+│   │   ├── core/       # Core scraping functionality
+│   │   ├── providers/  # Website-specific scrapers
+│   │   └── utils/      # Utility functions
 │   ├── app.py         # Main application file
 │   ├── config.py      # Configuration settings
 │   ├── .env.example   # Example environment variables (commit this)
@@ -33,6 +37,17 @@ list-4-free-chatbot/
 For detailed documentation of each component, please refer to:
 - [Backend Documentation](chatbot-backend/README.md)
 - [Frontend Documentation](chatbot-frontend/README.md)
+- [Property Scrapers Documentation](chatbot-backend/scrapers/README.md)
+
+## Features
+
+- Natural language chat interface for property search
+- Multi-source property scraping (Rightmove, etc.)
+- User preference storage and management
+- Real-time property search results
+- Responsive web interface
+- Secure API endpoints with versioning
+- Rate-limited and efficient scraping
 
 ## Initial Setup
 
@@ -50,6 +65,7 @@ Both frontend and backend use environment variables for configuration. These are
    SECRET_KEY=your-secret-key-here
    FLASK_DEBUG=True
    CORS_ORIGINS=http://localhost:3000
+   SCRAPER_RATE_LIMIT=1.0  # Delay between requests in seconds
 
    # Copy to .env and update with real values:
    cp chatbot-backend/.env.example chatbot-backend/.env
@@ -143,5 +159,13 @@ The frontend will run on:
 
 2. Ensure the backend can connect to your PostgreSQL database
 3. CORS is configured to allow communication between frontend and backend
+
+## Testing
+
+### Scraper Tests
+```bash
+cd chatbot-backend/scrapers
+python test_scrapers.py
+```
 
 

@@ -10,6 +10,7 @@ A Flask-based backend service for the List4Free chatbot, designed to handle chat
 - Azure PostgreSQL integration
 - RESTful API with versioning
 - CORS support for frontend integration
+- Property scraping from multiple sources (Rightmove, etc.)
 
 ## Prerequisites
 
@@ -57,6 +58,37 @@ Optional environment variables:
 - `CORS_ORIGINS`: Allowed origins (default: http://localhost:3000)
 - `MAX_SESSION_DURATION`: Session timeout in seconds (default: 3600)
 - `MAX_MESSAGES_PER_SESSION`: Message limit per session (default: 100)
+
+## Property Scraping
+
+The backend includes a property scraping module that can fetch listings from various property websites. For detailed information about the scraping functionality, including:
+
+- How to use the scrapers
+- How to add new property websites
+- Testing the scrapers
+- Rate limiting and error handling
+
+See the [Property Scrapers Documentation](scrapers/README.md).
+
+### Quick Start with Property Scraping
+
+```python
+from scrapers import ScraperController, RightmoveScraper
+
+# Initialize scrapers
+scrapers = [RightmoveScraper()]
+controller = ScraperController(scrapers)
+
+# Search for properties
+criteria = {
+    "location": "London",
+    "price_min": 300000,
+    "price_max": 500000,
+    "bedrooms_min": 2
+}
+
+listings = await controller.search(criteria)
+```
 
 ## Database Setup
 
@@ -151,7 +183,11 @@ chatbot-backend/
 ├── requirements.txt    # Python dependencies
 ├── database/          # Database utilities and schema
 ├── models/            # SQLAlchemy models
-└── routes/            # API route handlers
+├── routes/            # API route handlers
+└── scrapers/          # Property scraping module
+    ├── core/          # Core scraping functionality
+    ├── providers/     # Website-specific scrapers
+    └── test_scrapers.py  # Test script
 ```
 
 ## Integration with Frontend
