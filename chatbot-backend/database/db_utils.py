@@ -1,3 +1,41 @@
+"""
+Database Utilities Module
+
+This module provides database connection and session management for the List4Free chatbot.
+It uses SQLAlchemy for database operations and implements a singleton pattern for connection management.
+
+Integration Points:
+1. Azure PostgreSQL:
+   - Uses environment variables for connection details
+   - Supports connection pooling for better performance
+   - Handles connection errors gracefully
+
+2. Main Application:
+   - Can be integrated with the main app's database
+   - Uses the same connection pool for all operations
+   - Maintains transaction integrity
+
+Example Usage:
+-------------
+1. Basic Query:
+    with get_db() as db:
+        result = db.query(YourModel).filter_by(id=1).first()
+
+2. Transaction with Error Handling:
+    try:
+        with get_db() as db:
+            # Your database operations
+            db.add(new_record)
+            db.commit()
+    except SQLAlchemyError as e:
+        logger.error(f"Database operation failed: {str(e)}")
+        raise
+
+3. Connection Testing:
+    if test_connection():
+        print("Database connection is working")
+"""
+
 import os
 import logging
 from sqlalchemy import create_engine, text
@@ -12,6 +50,10 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class DatabaseConnection:
+    """
+    Singleton class for managing database connections.
+    Ensures only one connection pool is created and reused.
+    """
     _instance = None
     _engine = None
     _Session = None
@@ -28,15 +70,28 @@ class DatabaseConnection:
 
     @property
     def engine(self):
+        """Get the SQLAlchemy engine instance"""
         return self._engine
 
     @property
     def session(self):
+        """Get a new database session"""
         return self._Session()
 
 @contextmanager
 def get_db():
-    """Provide a transactional scope around a series of operations"""
+    """
+    Context manager for database sessions.
+    Provides automatic transaction management and cleanup.
+    
+    Usage:
+        with get_db() as db:
+            # Your database operations here
+            db.query(...)
+    
+    The session will be automatically committed if no errors occur,
+    or rolled back if an error is raised.
+    """
     db = DatabaseConnection()
     session = db.session
     try:
@@ -44,9 +99,28 @@ def get_db():
         session.commit()
     except SQLAlchemyError as e:
         session.rollback()
+        logger.error(f"Database error: {str(e)}")
         raise e
     finally:
         session.close()
+
+def test_connection():
+    """
+    Test the database connection.
+    Useful for verifying connection details and permissions.
+    
+    Returns:
+        bool: True if connection is successful, raises exception otherwise
+    """
+    try:
+        db = DatabaseConnection()
+        with db.engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+            logger.info("Database connection test successful")
+            return True
+    except SQLAlchemyError as e:
+        logger.error(f"Database connection test failed: {str(e)}")
+        raise
 
 def create_database():
     """Create the database if it doesn't exist"""
@@ -94,21 +168,3 @@ def init_db(create_schema=False):
 
 # Create singleton instance
 db = DatabaseConnection()
-
-# Example usage:
-"""
-# Query example
-results = db.execute_query(
-    "SELECT * FROM users WHERE email = %s",
-    ('user@example.com',)
-)
-
-# Batch insert example
-db.execute_many(
-    "INSERT INTO chat_messages (session_id, message_type, content) VALUES (%s, %s, %s)",
-    [(1, 'bot', 'Hello'), (1, 'user', 'Hi')]
-)
-
-# Script execution example
-db.execute_script('path/to/schema.sql')
-""" 

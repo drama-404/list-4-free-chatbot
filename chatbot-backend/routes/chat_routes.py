@@ -1,3 +1,41 @@
+"""
+Chat Routes Module
+
+This module handles all chat-related routes for the List4Free chatbot.
+It provides endpoints for initiating and completing chat sessions, managing
+the conversation flow, and integrating with the main application.
+
+Integration Points:
+1. Frontend:
+   - Receives search criteria from main app
+   - Sends chat session data back to frontend
+   - Handles WebSocket/SSE communication (TODO)
+
+2. Database:
+   - Manages chat sessions and user data
+   - Handles transaction integrity
+   - Provides error handling
+
+3. Main Application:
+   - Receives search criteria
+   - Sends final preferences and user data
+   - Manages user authentication state
+
+Routes:
+--------
+POST /initiate
+    - Initializes new chat session
+    - Validates search criteria
+    - Creates database record
+    - Returns initial popup message
+
+POST /complete
+    - Completes chat session
+    - Saves final preferences
+    - Updates user contact info
+    - Triggers main app integration
+"""
+
 from flask import Blueprint, request, jsonify
 from database.db_utils import get_db
 from models.models import ChatSession
@@ -7,10 +45,21 @@ from functools import wraps
 import logging
 import os
 
+# Initialize Blueprint and logging
 chat_bp = Blueprint('chat', __name__)
 logger = logging.getLogger(__name__)
 
 def handle_db_errors(f):
+    """
+    Decorator for handling database errors in route handlers.
+    Provides consistent error logging and response format.
+    
+    Args:
+        f: The route handler function to decorate
+        
+    Returns:
+        Decorated function that handles database errors
+    """
     @wraps(f)
     def decorated_function(*args, **kwargs):
         try:
@@ -23,7 +72,23 @@ def handle_db_errors(f):
 @chat_bp.route('/initiate', methods=['POST'])
 @handle_db_errors
 def initiate_chat():
-    """Initialize a new chat session with search criteria from the main app"""
+    """
+    Initialize a new chat session with search criteria from the main app.
+    
+    Request Body:
+        {
+            "search_criteria": {
+                "location": str,
+                "propertyType": str,
+                "bedrooms": {"min": int, "max": int},
+                "price": {"min": int, "max": int}
+            },
+            "list4free_user_id": str (optional)
+        }
+    
+    Returns:
+        JSON response with session details and initial popup message
+    """
     data = request.get_json()
     
     if not data or 'search_criteria' not in data:
@@ -66,7 +131,7 @@ def initiate_chat():
         # Generate initial popup message
         initial_popup = generate_initial_popup(search_criteria, bool(data.get('list4free_user_id')))
 
-        # Send message to frontend
+        # Prepare frontend message
         frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:3000')
         frontend_message = {
             'type': 'INITIATE_CHAT',
@@ -74,8 +139,7 @@ def initiate_chat():
             'list4freeUserId': data.get('list4free_user_id')
         }
         
-        # TO DO use WebSocket or Server-Sent Events
-        # For now, we'll just return the data the frontend wil handle it
+        # TODO: Implement WebSocket or Server-Sent Events for real-time communication
         return jsonify({
             'session_id': session_id,
             'initial_popup': initial_popup,
@@ -85,7 +149,20 @@ def initiate_chat():
 @chat_bp.route('/complete', methods=['POST'])
 @handle_db_errors
 def complete_chat():
-    """Complete the chat session and send data to main app"""
+    """
+    Complete the chat session and send data to main app.
+    
+    Request Body:
+        {
+            "session_id": str,
+            "final_preferences": dict,
+            "user_email": str (optional),
+            "conversation_summary": str (optional)
+        }
+    
+    Returns:
+        JSON response with completion status
+    """
     try:
         data = request.get_json()
         logger.info(f"Received complete chat request with data: {data}")
@@ -132,11 +209,29 @@ def complete_chat():
         return jsonify({'error': str(e)}), 500
 
 def generate_initial_popup(search_criteria, is_logged_in=False):
-    """Generate the initial popup message based on search criteria and user status"""
+    """
+    Generate the initial popup message based on search criteria and user status.
+    
+    Args:
+        search_criteria (dict): User's search criteria
+        is_logged_in (bool): Whether the user is logged into List4Free
+        
+    Returns:
+        str: Formatted popup message
+    """
+    # TODO: Implement popup message generation
     return ""
 
 def send_to_main_app(data):
-    """Send collected data to main app"""
+    """
+    Send collected data to main application.
+    
+    Args:
+        data (dict): Chat session data to send
+        
+    Returns:
+        dict: Response from main app
+    """
     # TODO: Implement API call to main app
-    #  will be done asynchronously
+    # Will be done asynchronously
     return {'search_id': 'placeholder-search-id'}
