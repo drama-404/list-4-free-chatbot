@@ -22,24 +22,24 @@ CREATE TABLE chat_sessions (
     UNIQUE(session_id)
 );
 
--- Create property_preferences table
-CREATE TABLE property_preferences (
-    id SERIAL PRIMARY KEY,
-    session_id INTEGER REFERENCES chat_sessions(id),
-    location VARCHAR(255) NOT NULL,
-    property_type VARCHAR(50) NOT NULL,
-    property_subtype VARCHAR(50), -- For residential: studio, flat, detached house, etc.
-    min_bedrooms INTEGER,
-    max_bedrooms INTEGER,
-    min_price DECIMAL(12,2),
-    max_price DECIMAL(12,2),
-    has_transport BOOLEAN DEFAULT false,
-    has_school BOOLEAN DEFAULT false,
-    timeline VARCHAR(20) NOT NULL, -- 'ASAP', '1-3 months', '3-6 months', 'Not sure yet'
-    has_pre_approved_loan BOOLEAN, -- NULL if not asked or user chose not to share
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
+-- -- Create property_preferences table
+-- CREATE TABLE property_preferences (
+--     id SERIAL PRIMARY KEY,
+--     session_id INTEGER REFERENCES chat_sessions(id),
+--     location VARCHAR(255) NOT NULL,
+--     property_type VARCHAR(50) NOT NULL,
+--     property_subtype VARCHAR(50), -- For residential: studio, flat, detached house, etc.
+--     min_bedrooms INTEGER,
+--     max_bedrooms INTEGER,
+--     min_price DECIMAL(12,2),
+--     max_price DECIMAL(12,2),
+--     has_transport BOOLEAN DEFAULT false,
+--     has_school BOOLEAN DEFAULT false,
+--     timeline VARCHAR(20) NOT NULL, -- 'ASAP', '1-3 months', '3-6 months', 'Not sure yet'
+--     has_pre_approved_loan BOOLEAN, -- NULL if not asked or user chose not to share
+--     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+--     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+-- );
 
 -- -- Create chat_messages table
 -- CREATE TABLE chat_messages (
@@ -82,29 +82,29 @@ CREATE INDEX idx_chat_sessions_list4free_user_id ON chat_sessions(list4free_user
 -- CREATE INDEX idx_search_history_session_id ON search_history(session_id);
 -- CREATE INDEX idx_conversation_state_session_id ON conversation_state(session_id);
 
--- Create function to update last_active timestamp
-CREATE OR REPLACE FUNCTION update_last_active()
-RETURNS TRIGGER AS $$
-BEGIN
-    NEW.last_active = CURRENT_TIMESTAMP;
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
+-- -- Create function to update last_active timestamp
+-- CREATE OR REPLACE FUNCTION update_last_active()
+-- RETURNS TRIGGER AS $$
+-- BEGIN
+--     NEW.last_active = CURRENT_TIMESTAMP;
+--     RETURN NEW;
+-- END;
+-- $$ LANGUAGE plpgsql;
 
--- Create trigger for last_active updates
-CREATE TRIGGER update_chat_sessions_last_active
-    BEFORE UPDATE ON chat_sessions
-    FOR EACH ROW
-    EXECUTE FUNCTION update_last_active();
+-- -- Create trigger for last_active updates
+-- CREATE TRIGGER update_chat_sessions_last_active
+--     BEFORE UPDATE ON chat_sessions
+--     FOR EACH ROW
+--     EXECUTE FUNCTION update_last_active();
 
--- Create function to update updated_at timestamp
-CREATE OR REPLACE FUNCTION update_updated_at()
-RETURNS TRIGGER AS $$
-BEGIN
-    NEW.updated_at = CURRENT_TIMESTAMP;
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
+-- -- Create function to update updated_at timestamp
+-- CREATE OR REPLACE FUNCTION update_updated_at()
+-- RETURNS TRIGGER AS $$
+-- BEGIN
+--     NEW.updated_at = CURRENT_TIMESTAMP;
+--     RETURN NEW;
+-- END;
+-- $$ LANGUAGE plpgsql;
 
 -- -- Create triggers for updated_at updates
 -- CREATE TRIGGER update_property_preferences_updated_at

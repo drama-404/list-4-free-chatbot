@@ -1,3 +1,22 @@
+/**
+ * ChatWidget Component
+ * 
+ * Handles the chat interface for property search preferences.
+ * The component manages conversation state, user input, and API interactions.
+ * 
+ * Key Features:
+ * - Natural conversation flow for collecting property preferences
+ * - State management using useReducer
+ * - Input validation for specific fields (email, bedrooms)
+ * - Auto-scrolling chat log
+ * - Minimizable interface
+ * - Typing indicators
+ * 
+ * State Flow:
+ * INITIAL -> CONFIRM_FILTERS -> EDIT_LOCATION/PROPERTY_TYPE -> BEDROOMS -> 
+ * PUBLIC_TRANSPORT -> SCHOOLS -> TIMELINE -> FINANCIAL_READINESS -> EMAIL_REQUEST -> COMPLETED
+ */
+
 import React, { useState, useReducer, useEffect, useRef } from 'react';
 import TypingIndicator from './TypingIndicator';
 import {
@@ -15,6 +34,9 @@ import { initiateChat, completeChat } from '../utils/api';
 import MinimizedChat from './MinimizedChat';
 import '../styles/ChatWidget.css';
 
+/**
+ * Reducer function to manage conversation state
+ */
 const conversationReducer = (state, action) => {
     console.log('Reducer action:', action);
     switch (action.type) {
@@ -32,6 +54,7 @@ const conversationReducer = (state, action) => {
 };
 
 const ChatWidget = ({ initialResponse, searchCriteria, list4freeUserId, sessionId }) => {
+    // State management
     const [messages, setMessages] = useState([]);
     const [userInput, setUserInput] = useState('');
     const [state, dispatch] = useReducer(conversationReducer, 
@@ -45,12 +68,17 @@ const ChatWidget = ({ initialResponse, searchCriteria, list4freeUserId, sessionI
     const [inputError, setInputError] = useState('');
     const [lastActiveMessageId, setLastActiveMessageId] = useState(null);
     
-    // Add ref to track if chat has been completed
-    const hasCompletedRef = useRef(false);
+    // Refs
+    const hasCompletedRef = useRef(false); // Tracks if chat completion has been handled
 
+    // Environment variables
     const API_URL = process.env.REACT_APP_API_URL;
     const CHAT_API_URL = process.env.REACT_APP_CHAT_API_URL;
 
+    /**
+     * Simulates typing delay for bot responses
+     * @returns {Promise} Resolves after 1 second
+     */
     const simulateTyping = () => {
         setIsTyping(true);
         return new Promise(resolve => {
@@ -61,6 +89,12 @@ const ChatWidget = ({ initialResponse, searchCriteria, list4freeUserId, sessionI
         });
     };
 
+    /**
+     * Validates user input based on field type
+     * @param {string} input - User input to validate
+     * @param {string} type - Type of validation ('email', 'location', 'bedrooms')
+     * @returns {boolean} Whether input is valid
+     */
     const validateInput = (input, type) => {
         switch (type) {
             case 'email':
@@ -79,6 +113,11 @@ const ChatWidget = ({ initialResponse, searchCriteria, list4freeUserId, sessionI
         }
     };
 
+    /**
+     * Handles user responses based on current conversation state
+     * @param {string} input - User's input message
+     * @returns {Object|null} Bot response message or null if handled elsewhere
+     */
     const handleUserResponse = async (input) => {
         switch (state.currentState) {
             case CONVERSATION_STATES.INITIAL:
@@ -181,6 +220,25 @@ const ChatWidget = ({ initialResponse, searchCriteria, list4freeUserId, sessionI
             case CONVERSATION_STATES.BEDROOMS:
                 const { min, max } = extractBedroomNumbers(input);
 
+                // Check if the input was successfully parsed
+                if (min === null && max === null && !input.toLowerCase().includes('studio')) {
+                    const errorMessageId = Date.now();
+                    const hintMessageId = errorMessageId + 1;
+                    setLastActiveMessageId(hintMessageId);
+
+                    setMessages(prev => [...prev, {
+                        sender: 'bot',
+                        text: "I couldn't understand the number of bedrooms. Could you please specify it in one of these formats?",
+                        id: errorMessageId
+                    }, {
+                        sender: 'bot',
+                        text: "You can specify:\n• A single number (e.g., '3')\n• A range (e.g., '2-4' or '2 to 4')\n• Min/max (e.g., 'min 2' or 'max 4')\n• 'No min' or 'No max' for open-ended ranges\n• 'Studio' for 0 bedrooms",
+                        isHint: true,
+                        id: hintMessageId
+                    }]);
+                    return null;
+                }
+
                 // Format the bedroom confirmation message
                 let bedroomConfirmation = "";
                 if (min === 0 && max === 0) {
@@ -271,38 +329,18 @@ const ChatWidget = ({ initialResponse, searchCriteria, list4freeUserId, sessionI
                 }
 
             case CONVERSATION_STATES.FINANCIAL_READINESS:
-                if (input === "Yes") {
-                    dispatch({ type: 'UPDATE_STATE', payload: CONVERSATION_STATES.COMPLETED });
-                    const hintId = Date.now();
-                    const finalMessageId = hintId + 1;
-                    setLastActiveMessageId(finalMessageId);
-
-                    setMessages(prev => [...prev, {
-                        sender: 'bot',
-                        text: "Please note that you may be requested to show a Pre-Approved Loan Agreement before the viewing of a property.",
-                        isHint: true,
-                        id: hintId
-                    }, {
-                        sender: 'bot',
-                        text: "Please register an account and we shall provide all the available properties that match your requirements.",
-                        options: ["Register"],
-                        id: finalMessageId
-                    }]);
-                    return null;
-                } else {
-                    dispatch({ type: 'UPDATE_STATE', payload: CONVERSATION_STATES.EMAIL_REQUEST });
-                    setMessages(prev => [...prev, {
-                        sender: 'bot',
-                        text: "Please note that you may be requested to show a Pre-Approved Loan Agreement before the viewing of a property.",
-                        isHint: true,
-                        id: Date.now()
-                    }, {
-                        sender: 'bot',
-                        text: "Please leave with us your email address and we'll come back to you within 2 hours.",
-                        id: Date.now() + 1
-                    }]);
-                    return null;
-                }
+                dispatch({ type: 'UPDATE_STATE', payload: CONVERSATION_STATES.EMAIL_REQUEST });
+                setMessages(prev => [...prev, {
+                    sender: 'bot',
+                    text: "Please note that you may be requested to show a Pre-Approved Loan Agreement before the viewing of a property.",
+                    isHint: true,
+                    id: Date.now()
+                }, {
+                    sender: 'bot',
+                    text: "Please leave with us your email address and we'll come back to you within 2 hours.",
+                    id: Date.now() + 1
+                }]);
+                return null;
 
             case CONVERSATION_STATES.EMAIL_REQUEST:
                 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -310,7 +348,7 @@ const ChatWidget = ({ initialResponse, searchCriteria, list4freeUserId, sessionI
                     console.log('Valid email provided, transitioning to COMPLETED state');
                     dispatch({ type: 'SET_EMAIL', payload: input });
                     dispatch({ type: 'UPDATE_STATE', payload: CONVERSATION_STATES.COMPLETED });
-                    return null; // Don't return a message, let the useEffect handle it
+                    return null; // Handled by useEffect for COMPLETED state
                 } else {
                     return {
                         sender: 'bot',
@@ -319,14 +357,17 @@ const ChatWidget = ({ initialResponse, searchCriteria, list4freeUserId, sessionI
                 }
 
             case CONVERSATION_STATES.COMPLETED:
-                // This case might not be needed anymore since we're handling it in useEffect
-                return null;
+                return null; // Handled by useEffect
 
             default:
                 return null;
         }
     };
 
+    /**
+     * Sends a message and handles bot response
+     * @param {string} message - Message to send
+     */
     const sendMessage = async (message) => {
         setLastActiveMessageId(null);
 
@@ -355,22 +396,19 @@ const ChatWidget = ({ initialResponse, searchCriteria, list4freeUserId, sessionI
                 }]);
             }
         } catch (error) {
-            console.error('Error:', error);
+            console.error('Error in sendMessage:', error);
         } finally {
             setIsLoading(false);
         }
     };
 
-    // Initialize chat when component mounts
+    // Effect: Initialize chat when component mounts
     useEffect(() => {
         const initializeChat = async () => {
             try {
                 setIsLoading(true);
-                // Call the backend to initiate chat
                 const response = await initiateChat(searchCriteria, list4freeUserId);
-                // setSessionId(response.session_id);
 
-                // Update the conversation state with the search criteria
                 dispatch({
                     type: 'UPDATE_FILTERS',
                     payload: {
@@ -379,87 +417,48 @@ const ChatWidget = ({ initialResponse, searchCriteria, list4freeUserId, sessionI
                     }
                 });
 
-                // Add the initial popup message
                 setMessages([{
                     sender: 'bot',
                     text: response.initial_popup,
                     options: ["Yes, please!", "No, thanks."],
                     id: Date.now()
                 }]);
-
             } catch (error) {
                 console.error('Error initializing chat:', error);
-                // Handle error appropriately
             } finally {
                 setIsLoading(false);
             }
         };
 
         initializeChat();
-    }, [searchCriteria, list4freeUserId]); // Only run when search criteria or user ID changes
+    }, [searchCriteria, list4freeUserId]);
 
-    // Handle initial response from popup
+    // Effect: Handle initial response from popup
     useEffect(() => {
         if (initialResponse) {
-            // Add a small delay to ensure the initial message is set first
             const timer = setTimeout(() => {
                 sendMessage(initialResponse);
             }, 100);
-
-            return () => clearTimeout(timer); // Cleanup timeout
+            return () => clearTimeout(timer);
         }
-    }, [initialResponse]); // Only run when initialResponse changes
+    }, [initialResponse]);
 
-    // Auto-scroll to bottom when messages change
+    // Effect: Auto-scroll chat log
     useEffect(() => {
         if (chatLogRef.current) {
             chatLogRef.current.scrollTop = chatLogRef.current.scrollHeight;
         }
     }, [messages]);
 
-    // Function to determine if input should be enabled
-    const isInputEnabled = () => {
-        return state.currentState === CONVERSATION_STATES.BEDROOMS ||
-            state.currentState === CONVERSATION_STATES.EMAIL_REQUEST ||
-            state.currentState === CONVERSATION_STATES.EDIT_LOCATION;
-    };
-
-    // Focus input when entering bedrooms or email state
-    useEffect(() => {
-        if (isInputEnabled() && inputRef.current) {
-            inputRef.current.focus();
-        }
-    }, [state.currentState]);
-
-    // Clear error when state changes or when input changes
-    useEffect(() => {
-        setInputError('');
-    }, [state.currentState]);
-
-    // Update the useEffect to handle COMPLETED state
+    // Effect: Handle COMPLETED state
     useEffect(() => {
         const handleCompletedState = async () => {
-            // Only proceed if we're in COMPLETED state and haven't already completed
             if (state.currentState === CONVERSATION_STATES.COMPLETED && !hasCompletedRef.current) {
-                console.log('Handling COMPLETED state');
-                hasCompletedRef.current = true; // Mark as completed
+                hasCompletedRef.current = true;
 
                 try {
-                    // Format final preferences
                     const finalPreferences = formatFinalPreferences(state);
-                    console.log('Formatted final preferences:', finalPreferences);
-
-                    // Format conversation summary
                     const conversationSummary = formatConversationSummary(messages);
-                    console.log('Formatted conversation summary:', conversationSummary);
-
-                    // Call the backend to complete the chat
-                    console.log('Calling completeChat with:', {
-                        sessionId,
-                        finalPreferences,
-                        userEmail: state.userEmail,
-                        conversationSummary
-                    });
 
                     const response = await completeChat(
                         sessionId,
@@ -468,23 +467,13 @@ const ChatWidget = ({ initialResponse, searchCriteria, list4freeUserId, sessionI
                         conversationSummary
                     );
 
-                    console.log('Chat completed successfully:', response);
-
-                    // Add final message
                     setMessages(prev => [...prev, {
                         sender: 'bot',
                         text: "Great! Keep an eye on your inbox—and don't forget your spam folder just in case!\n\nThank you! 😊",
                         id: Date.now()
                     }]);
-
                 } catch (error) {
-                    console.error('Error in COMPLETED state:', error);
-                    console.error('Error details:', {
-                        message: error.message,
-                        stack: error.stack
-                    });
-
-                    // Add error message
+                    console.error('Error completing chat:', error);
                     setMessages(prev => [...prev, {
                         sender: 'bot',
                         text: "Thank you for using our service! We'll process your preferences and get back to you soon.",
@@ -495,13 +484,44 @@ const ChatWidget = ({ initialResponse, searchCriteria, list4freeUserId, sessionI
         };
 
         handleCompletedState();
-    }, [state.currentState, sessionId]); // Only depend on state.currentState and sessionId
+    }, [state.currentState, sessionId]);
 
-    const handleInputChange = (e) => {
-        setUserInput(e.target.value);
-        setInputError(''); // Clear error when user types
+    // Effect: Focus input when entering specific states
+    useEffect(() => {
+        if (isInputEnabled() && inputRef.current) {
+            inputRef.current.focus();
+        }
+    }, [state.currentState]);
+
+    // Effect: Clear input error when state changes
+    useEffect(() => {
+        setInputError('');
+    }, [state.currentState]);
+
+    /**
+     * Determines if text input should be enabled
+     * @returns {boolean} Whether input should be enabled
+     */
+    const isInputEnabled = () => {
+        return state.currentState === CONVERSATION_STATES.BEDROOMS ||
+            state.currentState === CONVERSATION_STATES.EMAIL_REQUEST ||
+            state.currentState === CONVERSATION_STATES.EDIT_LOCATION;
     };
 
+    /**
+     * Handles input change and clears errors
+     * @param {Event} e - Input change event
+     */
+    const handleInputChange = (e) => {
+        setUserInput(e.target.value);
+        setInputError('');
+    };
+
+    /**
+     * Renders message content with options if available
+     * @param {Object} msg - Message object to render
+     * @returns {JSX.Element} Rendered message content
+     */
     const renderMessageContent = (msg) => {
         return (
             <div className={`message-content ${msg.isHint ? 'hint-container' : ''}`}>
@@ -530,12 +550,15 @@ const ChatWidget = ({ initialResponse, searchCriteria, list4freeUserId, sessionI
         );
     };
 
+    // Render minimized state
     if (isMinimized) {
         return <MinimizedChat onMaximize={() => setIsMinimized(false)} />;
     }
 
+    // Main render
     return (
         <div className="chat-widget">
+            {/* Header */}
             <div className="chat-header">
                 <div className="header-content">
                     <div className="profile-section">
@@ -560,6 +583,7 @@ const ChatWidget = ({ initialResponse, searchCriteria, list4freeUserId, sessionI
                 </div>
             </div>
 
+            {/* Chat Log */}
             <div className="chat-log" ref={chatLogRef}>
                 {messages.map((message, index) => (
                     <div key={message.id || index} className={`message ${message.sender}`}>
@@ -575,12 +599,13 @@ const ChatWidget = ({ initialResponse, searchCriteria, list4freeUserId, sessionI
                 )}
             </div>
 
+            {/* Input Form */}
             <form onSubmit={(e) => {
                 e.preventDefault();
                 if (userInput.trim() && !isLoading && isInputEnabled()) {
                     if (state.currentState === CONVERSATION_STATES.EMAIL_REQUEST) {
                         if (validateInput(userInput, 'email')) {
-                            setInputError(''); // Clear error
+                            setInputError('');
                             sendMessage(userInput);
                             setUserInput('');
                         } else {
@@ -613,7 +638,6 @@ const ChatWidget = ({ initialResponse, searchCriteria, list4freeUserId, sessionI
                         type="submit"
                         disabled={!isInputEnabled() || !userInput.trim() || isLoading}
                     >
-                        {/* {isLoading ? '...' : 'Send'} */}
                         Send
                     </button>
                 </div>

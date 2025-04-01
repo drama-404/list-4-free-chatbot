@@ -1,3 +1,15 @@
+/**
+ * Conversation State Management Module
+ * 
+ * Manages the state and flow of the chat conversation.
+ * Provides utilities for handling property types, preferences, and state transitions.
+ */
+
+/**
+ * Enumeration of possible conversation states
+ * @readonly
+ * @enum {string}
+ */
 export const CONVERSATION_STATES = {
   INITIAL: 'INITIAL',
   CONFIRM_FILTERS: 'CONFIRM_FILTERS',
@@ -12,6 +24,11 @@ export const CONVERSATION_STATES = {
   COMPLETED: 'COMPLETED'
 };
 
+/**
+ * Available property types and their subtypes
+ * @readonly
+ * @enum {Object}
+ */
 export const PROPERTY_TYPES = {
   LAND: 'Land',
   RESIDENTIAL: {
@@ -28,6 +45,11 @@ export const PROPERTY_TYPES = {
   }
 };
 
+/**
+ * Available timeline options for property purchase
+ * @readonly
+ * @type {string[]}
+ */
 export const TIMELINE_OPTIONS = [
   'ASAP',
   '1-3 months',
@@ -35,6 +57,11 @@ export const TIMELINE_OPTIONS = [
   'Not sure yet'
 ];
 
+/**
+ * Initial state object for the conversation
+ * @readonly
+ * @type {Object}
+ */
 export const initialState = {
   currentState: CONVERSATION_STATES.INITIAL,
   filters: {
@@ -49,7 +76,7 @@ export const initialState = {
       min: null,
       max: null
     },
-    existingFilters: true
+    existingFilters: false
   },
   preferences: {
     publicTransport: null,
@@ -60,7 +87,12 @@ export const initialState = {
   userEmail: null
 };
 
-// create state with search criteria from API call
+/**
+ * Creates initial state with search criteria from the main app
+ * 
+ * @param {Object} searchCriteria - Search criteria from the main app
+ * @returns {Object} Initial state with search criteria
+ */
 export const createInitialStateWithFilters = (searchCriteria) => ({
   ...initialState,
   filters: {
@@ -70,7 +102,13 @@ export const createInitialStateWithFilters = (searchCriteria) => ({
   }
 });
 
-
+/**
+ * Formats price range into a human-readable string
+ * 
+ * @param {number} min - Minimum price
+ * @param {number} max - Maximum price
+ * @returns {string|null} Formatted price range or null if no valid range
+ */
 const formatPrice = (min, max) => {
   if (min && max) return `between £${min.toLocaleString()} and £${max.toLocaleString()}`;
   if (min) return `from £${min.toLocaleString()}`;
@@ -78,7 +116,13 @@ const formatPrice = (min, max) => {
   return null;
 };
 
-
+/**
+ * Formats bedroom range into a human-readable string
+ * 
+ * @param {number} min - Minimum number of bedrooms
+ * @param {number} max - Maximum number of bedrooms
+ * @returns {string|null} Formatted bedroom range or null if no valid range
+ */
 const formatBedrooms = (min, max) => {
   if (min === null && max === null) return null;
   if (min === max) return `${min}`;
@@ -88,14 +132,25 @@ const formatBedrooms = (min, max) => {
   return null;
 };
 
-
+/**
+ * Checks if a property type is residential
+ * 
+ * @param {string} propertyType - Main property type
+ * @param {string} propertySubtype - Property subtype
+ * @returns {boolean} Whether the property is residential
+ */
 const isResidentialProperty = (propertyType, propertySubtype) => {
   if (propertyType === 'Residential') return true;
   if (propertySubtype && PROPERTY_TYPES.RESIDENTIAL.subtypes.includes(propertySubtype)) return true;
   return false;
 };
 
-// function to generate the confirmation message based on search criteria
+/**
+ * Generates a confirmation message based on search criteria
+ * 
+ * @param {Object} filters - Current search filters
+ * @returns {string|null} Formatted confirmation message or null if no valid filters
+ */
 export const generateConfirmationMessage = (filters) => {
   if (!filters || Object.values(filters).every(v => v === null ||
     (typeof v === 'object' && Object.values(v).every(x => x === null)))) {
@@ -145,6 +200,12 @@ export const generateConfirmationMessage = (filters) => {
   return `Just to confirm, you're ${parts.join(' ')}? Do you want to refine these details?`;
 };
 
+/**
+ * Extracts bedroom numbers from user input
+ * 
+ * @param {string} input - User's input text
+ * @returns {Object} Object containing min and max bedroom numbers
+ */
 export const extractBedroomNumbers = (input) => {
   const text = input.toLowerCase();
   let min = null;
@@ -179,8 +240,12 @@ export const extractBedroomNumbers = (input) => {
   return { min, max };
 };
 
-
-
+/**
+ * Formats final preferences for API submission
+ * 
+ * @param {Object} state - Current conversation state
+ * @returns {Object} Cleaned preferences object without null values
+ */
 export const formatFinalPreferences = (state) => {
   // Create a clean preferences object without any undefined values
   const preferences = {
@@ -212,12 +277,19 @@ export const formatFinalPreferences = (state) => {
   return preferences;
 };
 
-
+/**
+ * Formats conversation messages for API submission
+ * 
+ * @param {Array} messages - Array of chat messages
+ * @returns {Array} Formatted messages with timestamps and options
+ */
 export const formatConversationSummary = (messages) => {
-  return messages.map(msg => ({
-    sender: msg.sender,
-    text: msg.text,
-    timestamp: msg.timestamp || new Date().toISOString(),
-    options: msg.options || null // Include options if they exist
-  })).filter(msg => msg.text); // Filter out any messages without text
+  return messages
+    .map(msg => ({
+      sender: msg.sender,
+      text: msg.text,
+      timestamp: msg.timestamp || new Date().toISOString(),
+      options: msg.options || null
+    }))
+    .filter(msg => msg.text); // Filter out any messages without text
 };

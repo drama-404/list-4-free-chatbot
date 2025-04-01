@@ -1,70 +1,120 @@
-# Getting Started with Create React App
+# List4Free Chatbot Widget
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A floating chat widget component for the List4Free application that helps users refine their property search when no results are found.
 
-## Available Scripts
+## Overview
 
-In the project directory, you can run:
+The chatbot widget is designed to be integrated into the main List4Free application as a floating component in the bottom right corner. It appears when a property search yields no results, helping users refine their search criteria through a conversational interface.
 
-### `npm start`
+## Features
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+- Floating chat widget that doesn't affect main app layout
+- Conversational interface for refining search criteria
+- Seamless integration with existing search results
+- Handles user authentication state
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+## Integration
 
-### `npm test`
+### Prerequisites
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+- Node.js and npm installed
+- Access to the List4Free Chatbot backend API
+- Main application running on the same domain
 
-### `npm run build`
+### Installation
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+1. Clone the repository:
+```bash
+git clone <repository-url>
+cd chatbot-frontend
+```
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+2. Install dependencies:
+```bash
+npm install
+```
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+3. Create a `.env` file based on `.env.example`:
+```bash
+cp .env.example .env
+```
 
-### `npm run eject`
+4. Update the `.env` file with your API endpoint:
+```
+REACT_APP_API_URL=your_api_endpoint
+```
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+### Usage in Main App
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+The chatbot is designed to be integrated directly into your search results page. Here's how to implement it:
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+```jsx
+// In your search results component
+import { ChatContainer } from 'list4free-chatbot';
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+const SearchResults = () => {
+  const [results, setResults] = useState([]);
+  const [searchCriteria, setSearchCriteria] = useState(null);
+  const [userId, setUserId] = useState(null);
+  
+  useEffect(() => {
+    if (results.length === 0) {
+      // Get search criteria from your search form/state
+      const criteria = {
+        location: searchForm.location,
+        propertyType: searchForm.propertyType,
+        // ... other search criteria
+      };
+      
+      // Get user ID if logged in
+      const currentUserId = isLoggedIn ? currentUser.id : null;
+      
+      setSearchCriteria(criteria);
+      setUserId(currentUserId);
+    }
+  }, [results]);
+  
+  return (
+    <>
+      {/* Your existing search results UI */}
+      {results.length === 0 && (
+        <ChatContainer 
+          searchCriteria={searchCriteria}
+          list4freeUserId={userId}
+        />
+      )}
+    </>
+  );
+};
+```
 
-## Learn More
+### Important Notes
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+1. Only render the `ChatContainer` component, not the entire `App` component
+2. The main app's UI and background will remain unchanged
+3. Pass the current search criteria and user ID (if logged in)
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+## Development
 
-### Code Splitting
+### Project Structure
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+```
+chatbot-frontend/
+├── src/
+│   ├── components/
+│   │   ├── ChatContainer.js    # Main container component
+│   │   ├── ChatWidget.js       # Chat interface component
+│   │   ├── InitialPopup.js     # Initial user interaction
+│   │   └── ...                 # Other UI components used in ChatWidget
+│   ├── utils/
+│   │   ├── api.js             # API integration
+│   │   └── conversationState.js # State management
+│   └── App.js                 # Root component (for testing)
+├── public/                    # Static assets
+└── package.json              # Dependencies and scripts
+```
 
-### Analyzing the Bundle Size
+### Available Scripts
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+- `npm start` - Run development server
+- `npm run build` - Build for production

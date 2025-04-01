@@ -1,9 +1,27 @@
+/**
+ * InitialPopup Component
+ * 
+ * A modal popup component that appears when no search results are found.
+ * Provides users with the option to start a chat session for deeper property search.
+ * 
+ * Features:
+ * - Integrated chat icon
+ * - Responsive layout
+ * 
+ * @param {Object} props - Component props
+ * @param {Function} props.onResponse - Callback function when user responds to popup
+ *                                    (true for accept, false for decline)
+ */
+
 import React from 'react';
 import '../styles/InitialPopup.css';
 import ChatIcon from './ChatIcon';
 
 const InitialPopup = ({ onResponse }) => {
-  const handleAccept = () => onResponse(true);
+    /**
+     * Handles the user's acceptance of the chat offer
+     */
+    const handleAccept = () => onResponse(true);
 
   return (
     <div className="popup-overlay">
