@@ -128,8 +128,8 @@ def initiate_chat():
         db.add(chat_session)
         db.flush()
 
-        # Generate initial popup message
-        initial_popup = generate_initial_popup(search_criteria, bool(data.get('list4free_user_id')))
+        # # Generate initial popup message
+        # initial_popup = generate_initial_popup(search_criteria, bool(data.get('list4free_user_id')))
 
         # Prepare frontend message
         frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:3000')
@@ -142,7 +142,7 @@ def initiate_chat():
         # TODO: Implement WebSocket or Server-Sent Events for real-time communication
         return jsonify({
             'session_id': session_id,
-            'initial_popup': initial_popup,
+            # 'initial_popup': initial_popup,
             'frontend_message': frontend_message
         }), 201
 
@@ -208,30 +208,16 @@ def complete_chat():
         logger.error(f"Error in complete_chat: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
-def generate_initial_popup(search_criteria, is_logged_in=False):
-    """
-    Generate the initial popup message based on search criteria and user status.
+# def generate_initial_popup(search_criteria, is_logged_in=False):
+#     """
+#     Generate the initial popup message based on search criteria and user status.
     
-    Args:
-        search_criteria (dict): User's search criteria
-        is_logged_in (bool): Whether the user is logged into List4Free
+#     Args:
+#         search_criteria (dict): User's search criteria
+#         is_logged_in (bool): Whether the user is logged into List4Free
         
-    Returns:
-        str: Formatted popup message
-    """
-    # TODO: Implement popup message generation
-    return ""
-
-def send_to_main_app(data):
-    """
-    Send collected data to main application.
-    
-    Args:
-        data (dict): Chat session data to send
-        
-    Returns:
-        dict: Response from main app
-    """
-    # TODO: Implement API call to main app
-    # Will be done asynchronously
-    return {'search_id': 'placeholder-search-id'}
+#     Returns:
+#         str: Formatted popup message
+#     """
+#     # TODO: Implement popup message generation
+#     return ""
